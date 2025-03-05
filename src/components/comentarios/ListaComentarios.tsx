@@ -1,7 +1,9 @@
 
 import { MessageSquare } from 'lucide-react';
+import { Alert } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertCircle, AlertDescription } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
 import { Comentario } from '@/types/comentario.types';
 import ComentarioCard from './ComentarioCard';
@@ -36,6 +38,7 @@ const ListaComentarios = ({
   refetch,
   ...props
 }: ListaComentariosProps) => {
+
   if (error) {
     return (
       <Alert className="bg-movieDark/30 border-movieRed/30 mb-6">
