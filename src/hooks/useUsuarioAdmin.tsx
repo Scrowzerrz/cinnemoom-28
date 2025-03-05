@@ -22,7 +22,7 @@ export function useUsuarioAdmin() {
     try {
       console.log("Carregando usuários do sistema...");
       
-      // Buscar todos os perfis sem filtros adicionais
+      // Certificar que a tabela perfis está habilitada com RLS
       const { data: perfis, error: erroPerf } = await supabase
         .from('perfis')
         .select('*')
@@ -30,6 +30,7 @@ export function useUsuarioAdmin() {
       
       if (erroPerf) {
         console.error("Erro ao buscar perfis:", erroPerf);
+        toast.error("Erro ao buscar perfis: " + erroPerf.message);
         throw erroPerf;
       }
       
@@ -123,9 +124,7 @@ export function useUsuarioAdmin() {
     }
   };
 
-  useEffect(() => {
-    carregarUsuarios();
-  }, []);
+  // Não carregamos os usuários automaticamente mais, pois estamos usando o useEffect em GerenciarUsuarios
   
   return {
     usuarios,
