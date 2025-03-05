@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -20,6 +19,7 @@ export interface Comentario {
   usuario_nome?: string;
   usuario_avatar?: string;
   curtido_pelo_usuario?: boolean;
+  usuario_eh_admin?: boolean; // Novo campo para indicar se o usuário é admin
 }
 
 export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
@@ -80,13 +80,30 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
         return acc;
       }, {} as Record<string, { id: string, nome: string | null, avatar_url: string | null }>);
       
+      // Buscar lista de administradores
+      const { data: adminsData, error: adminsError } = await supabase
+        .from('papeis_usuario')
+        .select('user_id')
+        .eq('papel', 'admin');
+        
+      if (adminsError) {
+        console.error('Erro ao buscar administradores:', adminsError);
+        // Continuamos mesmo com erro
+      }
+      
+      // Conjunto com IDs dos administradores
+      const adminsIds = new Set(
+        (adminsData || []).map(admin => admin.user_id)
+      );
+      
       // Se não há usuário logado, retornamos os comentários sem verificar curtidas
       if (!session?.user) {
         return comentariosData.map(c => ({
           ...c,
           usuario_nome: perfisPorUsuarioId[c.usuario_id]?.nome || 'Usuário',
           usuario_avatar: perfisPorUsuarioId[c.usuario_id]?.avatar_url,
-          curtido_pelo_usuario: false
+          curtido_pelo_usuario: false,
+          usuario_eh_admin: adminsIds.has(c.usuario_id)
         })) as Comentario[];
       }
       
@@ -111,7 +128,8 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
         ...c,
         usuario_nome: perfisPorUsuarioId[c.usuario_id]?.nome || 'Usuário',
         usuario_avatar: perfisPorUsuarioId[c.usuario_id]?.avatar_url,
-        curtido_pelo_usuario: comentariosCurtidos.has(c.id)
+        curtido_pelo_usuario: comentariosCurtidos.has(c.id),
+        usuario_eh_admin: adminsIds.has(c.usuario_id)
       })) as Comentario[];
     },
     enabled: !!itemId

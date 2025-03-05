@@ -6,8 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { 
-  Heart, Trash, Pen, Eye, EyeOff, 
+  Heart, Trash, Pen, Eye, EyeOff, ShieldCheck,
   MessageSquare, Clock, Send, X, AlertCircle, RefreshCw 
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -218,7 +219,7 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
           comentarios.map(comentario => (
             <div 
               key={comentario.id} 
-              className={`bg-gray-900 border ${comentario.visivel ? 'border-gray-800' : 'border-amber-500/30'} rounded-lg p-4 transition-all ${!comentario.visivel && 'bg-amber-950/10'}`}
+              className={`bg-gray-900 border ${comentario.visivel ? 'border-gray-800' : 'border-amber-500/30'} rounded-lg p-4 transition-all ${!comentario.visivel && 'bg-amber-950/10'} ${comentario.usuario_eh_admin ? 'border-blue-500/30 bg-blue-950/10' : ''}`}
             >
               {!comentario.visivel && ehAdmin && (
                 <div className="bg-amber-500/20 text-amber-200 px-3 py-1.5 rounded-md mb-3 text-sm flex items-center gap-2">
@@ -240,8 +241,16 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
                 
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h4 className="text-white font-medium">
+                    <h4 className="text-white font-medium flex items-center">
                       {comentario.usuario_nome || 'Usuário'}
+                      
+                      {comentario.usuario_eh_admin && (
+                        <Badge className="ml-2 bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1 px-2 py-0.5">
+                          <ShieldCheck className="h-3 w-3" />
+                          Admin
+                        </Badge>
+                      )}
+                      
                       {comentario.usuario_id === perfilUsuario?.id && (
                         <span className="ml-2 text-xs bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">
                           Você
