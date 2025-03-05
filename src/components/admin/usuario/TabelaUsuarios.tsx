@@ -1,5 +1,4 @@
 
-import { useState } from 'react';
 import { UserCircle, Shield, Trash2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from "@/components/ui/switch";

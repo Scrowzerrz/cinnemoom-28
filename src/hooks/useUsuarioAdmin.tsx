@@ -45,6 +45,7 @@ export function useUsuarioAdmin() {
       const usuariosComPapel = await Promise.all(
         perfis.map(async (perfil) => {
           try {
+            // Verificar se o usuário tem papel de admin usando RPC
             const { data: ehAdmin, error: erroAdmin } = await supabase
               .rpc('tem_papel', { 
                 usuario_id: perfil.id, 
