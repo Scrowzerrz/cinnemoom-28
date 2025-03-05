@@ -1,15 +1,15 @@
-
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Heart, Trash, Pen, Eye, EyeOff, ShieldCheck,
-  Clock, X, RefreshCw 
+  Clock, X, RefreshCw, Reply
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Comentario } from '@/types/comentario.types';
+import FormularioResposta from "./FormularioResposta";
 
 interface ComentarioCardProps {
   comentario: Comentario;
@@ -25,13 +25,17 @@ interface ComentarioCardProps {
   onCurtir: (id: string, curtido: boolean) => void;
   onExcluir: (id: string) => void;
   onAlternarVisibilidade: (id: string, visivel: boolean) => void;
+  onResponder: (comentario: Comentario) => void;
+  onSubmitResposta: (comentarioPaiId: string, texto: string) => Promise<void>;
   isEditando: boolean;
   isExcluindo: boolean;
   isAlternandoVisibilidade: boolean;
   isAlternandoCurtida: boolean;
+  isRespondendo: boolean;
+  comentarioRespondendoId: string | null;
 }
 
-const ComentarioCard = ({ 
+const ComentarioCard = ({
   comentario,
   usuarioLogado,
   perfilUsuarioId,
@@ -45,10 +49,14 @@ const ComentarioCard = ({
   onCurtir,
   onExcluir,
   onAlternarVisibilidade,
+  onResponder,
+  onSubmitResposta,
   isEditando,
   isExcluindo,
   isAlternandoVisibilidade,
-  isAlternandoCurtida
+  isAlternandoCurtida,
+  isRespondendo,
+  comentarioRespondendoId,
 }: ComentarioCardProps) => {
   const getInitials = (name: string) => {
     return name
@@ -152,102 +160,155 @@ const ComentarioCard = ({
               </div>
             </div>
           ) : (
-            <p className="text-gray-300 mt-2 break-words whitespace-pre-wrap">
-              {comentario.texto}
-            </p>
-          )}
-          
-          <div className="flex flex-wrap items-center gap-4 mt-3">
-            <button 
-              onClick={() => onCurtir(comentario.id, comentario.curtido_pelo_usuario)}
-              className={`text-gray-500 text-sm flex items-center gap-1.5 hover:text-gray-300 disabled:opacity-50 ${
-                comentario.curtido_pelo_usuario ? 'text-red-400 hover:text-red-500' : ''
-              }`}
-              disabled={!usuarioLogado || isAlternandoCurtida}
-            >
-              {comentario.curtido_pelo_usuario ? (
-                <Heart className="h-4 w-4 fill-red-400" />
-              ) : (
-                <Heart className="h-4 w-4" />
-              )}
-              {comentario.curtidas}
-            </button>
-            
-            {comentario.usuario_id === perfilUsuarioId && editandoId !== comentario.id && (
-              <>
+            <>
+              <p className="text-gray-300 mt-2 break-words whitespace-pre-wrap">
+                {comentario.texto}
+              </p>
+              
+              <div className="flex flex-wrap items-center gap-4 mt-3">
                 <button 
-                  onClick={() => onIniciarEdicao(comentario)}
-                  className="text-gray-500 text-sm hover:text-gray-300"
-                >
-                  Editar
-                </button>
-                
-                <button 
-                  onClick={() => onExcluir(comentario.id)}
-                  className="text-gray-500 text-sm hover:text-red-400"
-                  disabled={isExcluindo}
-                >
-                  {isExcluindo ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin inline-block mr-1" />
-                      Excluindo...
-                    </>
-                  ) : (
-                    'Excluir'
-                  )}
-                </button>
-              </>
-            )}
-            
-            {ehAdmin && comentario.usuario_id !== perfilUsuarioId && (
-              <>
-                <button 
-                  onClick={() => onAlternarVisibilidade(comentario.id, comentario.visivel)}
-                  className={`text-sm ${
-                    comentario.visivel
-                      ? 'text-amber-400 hover:text-amber-500'
-                      : 'text-green-400 hover:text-green-500'
+                  onClick={() => onCurtir(comentario.id, comentario.curtido_pelo_usuario)}
+                  className={`text-gray-500 text-sm flex items-center gap-1.5 hover:text-gray-300 disabled:opacity-50 ${
+                    comentario.curtido_pelo_usuario ? 'text-red-400 hover:text-red-500' : ''
                   }`}
-                  disabled={isAlternandoVisibilidade}
+                  disabled={!usuarioLogado || isAlternandoCurtida}
                 >
-                  {isAlternandoVisibilidade ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin inline-block mr-1" />
-                      Processando...
-                    </>
-                  ) : comentario.visivel ? (
-                    <>
-                      <EyeOff className="h-4 w-4 inline-block mr-1" />
-                      Ocultar
-                    </>
+                  {comentario.curtido_pelo_usuario ? (
+                    <Heart className="h-4 w-4 fill-red-400" />
                   ) : (
-                    <>
-                      <Eye className="h-4 w-4 inline-block mr-1" />
-                      Mostrar
-                    </>
+                    <Heart className="h-4 w-4" />
                   )}
+                  {comentario.curtidas}
                 </button>
                 
-                <button 
-                  onClick={() => onExcluir(comentario.id)}
-                  className="text-gray-500 text-sm hover:text-red-400"
-                  disabled={isExcluindo}
-                >
-                  {isExcluindo ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin inline-block mr-1" />
-                      Excluindo...
-                    </>
-                  ) : (
-                    <>
-                      <Trash className="h-4 w-4 inline-block mr-1" />
-                      Excluir
-                    </>
-                  )}
-                </button>
-              </>
-            )}
-          </div>
+                {usuarioLogado && !comentario.comentario_pai_id && (
+                  <button 
+                    onClick={() => onResponder(comentario)}
+                    className="text-gray-500 text-sm hover:text-gray-300 flex items-center gap-1.5"
+                  >
+                    <Reply className="h-4 w-4" />
+                    Responder
+                  </button>
+                )}
+                
+                {comentario.usuario_id === perfilUsuarioId && editandoId !== comentario.id && (
+                  <>
+                    <button 
+                      onClick={() => onIniciarEdicao(comentario)}
+                      className="text-gray-500 text-sm hover:text-gray-300"
+                    >
+                      Editar
+                    </button>
+                    
+                    <button 
+                      onClick={() => onExcluir(comentario.id)}
+                      className="text-gray-500 text-sm hover:text-red-400"
+                      disabled={isExcluindo}
+                    >
+                      {isExcluindo ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin inline-block mr-1" />
+                          Excluindo...
+                        </>
+                      ) : (
+                        'Excluir'
+                      )}
+                    </button>
+                  </>
+                )}
+                
+                {ehAdmin && comentario.usuario_id !== perfilUsuarioId && (
+                  <>
+                    <button 
+                      onClick={() => onAlternarVisibilidade(comentario.id, comentario.visivel)}
+                      className={`text-sm ${
+                        comentario.visivel
+                          ? 'text-amber-400 hover:text-amber-500'
+                          : 'text-green-400 hover:text-green-500'
+                      }`}
+                      disabled={isAlternandoVisibilidade}
+                    >
+                      {isAlternandoVisibilidade ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin inline-block mr-1" />
+                          Processando...
+                        </>
+                      ) : comentario.visivel ? (
+                        <>
+                          <EyeOff className="h-4 w-4 inline-block mr-1" />
+                          Ocultar
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 inline-block mr-1" />
+                          Mostrar
+                        </>
+                      )}
+                    </button>
+                    
+                    <button 
+                      onClick={() => onExcluir(comentario.id)}
+                      className="text-gray-500 text-sm hover:text-red-400"
+                      disabled={isExcluindo}
+                    >
+                      {isExcluindo ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin inline-block mr-1" />
+                          Excluindo...
+                        </>
+                      ) : (
+                        <>
+                          <Trash className="h-4 w-4 inline-block mr-1" />
+                          Excluir
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
+              
+              {comentarioRespondendoId === comentario.id && (
+                <FormularioResposta
+                  usuarioLogado={usuarioLogado}
+                  perfilUsuario={perfilUsuario}
+                  onSubmit={(texto) => onSubmitResposta(comentario.id, texto)}
+                  onCancel={() => onResponder(null)}
+                  isSubmitting={isRespondendo}
+                />
+              )}
+              
+              {comentario.respostas && comentario.respostas.length > 0 && (
+                <div className="mt-4 space-y-4 ml-8 border-l-2 border-gray-800 pl-4">
+                  {comentario.respostas.map(resposta => (
+                    <ComentarioCard
+                      key={resposta.id}
+                      comentario={resposta}
+                      usuarioLogado={usuarioLogado}
+                      perfilUsuarioId={perfilUsuarioId}
+                      ehAdmin={ehAdmin}
+                      editandoId={editandoId}
+                      textoEdicao={textoEdicao}
+                      setTextoEdicao={setTextoEdicao}
+                      onIniciarEdicao={onIniciarEdicao}
+                      onCancelarEdicao={onCancelarEdicao}
+                      onSubmitEdicao={onSubmitEdicao}
+                      onCurtir={onCurtir}
+                      onExcluir={onExcluir}
+                      onAlternarVisibilidade={onAlternarVisibilidade}
+                      onResponder={onResponder}
+                      onSubmitResposta={onSubmitResposta}
+                      isEditando={isEditando}
+                      isExcluindo={isExcluindo}
+                      isAlternandoVisibilidade={isAlternandoVisibilidade}
+                      isAlternandoCurtida={isAlternandoCurtida}
+                      isRespondendo={isRespondendo}
+                      comentarioRespondendoId={comentarioRespondendoId}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

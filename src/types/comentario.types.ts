@@ -13,6 +13,8 @@ export interface Comentario {
   usuario_avatar?: string;
   curtido_pelo_usuario?: boolean;
   usuario_eh_admin?: boolean;
+  comentario_pai_id?: string | null;
+  respostas?: Comentario[];
 }
 
 export type TipoItem = 'filme' | 'serie';

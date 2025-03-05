@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -22,6 +21,7 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
   const queryClient = useQueryClient();
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [textoEdicao, setTextoEdicao] = useState<string>('');
+  const [comentarioRespondendoId, setComentarioRespondendoId] = useState<string | null>(null);
 
   // Buscar comentários
   const { 
@@ -35,17 +35,18 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     enabled: !!itemId
   });
 
-  // Adicionar comentário
+  // Adicionar comentário (agora com suporte a respostas)
   const adicionarComentario = useMutation({
-    mutationFn: async (texto: string) => {
+    mutationFn: async (texto: string, comentarioPaiId?: string) => {
       if (!session?.user) {
         throw new Error('Você precisa estar logado para comentar');
       }
-      return adicionarNovoComentario(texto, session.user.id, itemId, itemTipo);
+      return adicionarNovoComentario(texto, session.user.id, itemId, itemTipo, comentarioPaiId);
     },
     onSuccess: () => {
       toast.success('Comentário adicionado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['comentarios', itemId, itemTipo] });
+      setComentarioRespondendoId(null);
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Erro ao adicionar comentário');
@@ -147,6 +148,10 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     setTextoEdicao('');
   };
 
+  const iniciarResposta = (comentario: Comentario | null) => {
+    setComentarioRespondendoId(comentario?.id || null);
+  };
+
   return {
     comentarios,
     isLoading,
@@ -164,6 +169,8 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     cancelarEdicao,
     usuarioLogado: !!session?.user,
     perfilUsuario: perfil,
-    ehAdmin
+    ehAdmin,
+    comentarioRespondendoId,
+    iniciarResposta
   };
 };

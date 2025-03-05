@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { TipoItem } from '@/types/comentario.types';
 
@@ -6,7 +5,8 @@ export const adicionarNovoComentario = async (
   texto: string,
   userId: string,
   itemId: string,
-  itemTipo: TipoItem
+  itemTipo: TipoItem,
+  comentarioPaiId?: string | null
 ) => {
   const { data, error } = await supabase
     .from('comentarios')
@@ -14,7 +14,8 @@ export const adicionarNovoComentario = async (
       usuario_id: userId,
       item_id: itemId,
       item_tipo: itemTipo,
-      texto
+      texto,
+      comentario_pai_id: comentarioPaiId
     })
     .select('*')
     .single();

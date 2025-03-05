@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Comentario, TipoItem } from '@/types/comentario.types';
 
@@ -14,9 +13,9 @@ export const buscarComentarios = async (
     .select(`*`)
     .eq('item_id', itemId)
     .eq('item_tipo', itemTipo)
+    .is('comentario_pai_id', null) // Busca apenas comentários principais
     .order('data_criacao', { ascending: false });
   
-  // Caso não seja admin, mostrar apenas comentários visíveis
   if (!ehAdmin) {
     query = query.eq('visivel', true);
   }
@@ -27,6 +26,26 @@ export const buscarComentarios = async (
     console.error('Erro ao buscar comentários:', comentariosError);
     throw new Error('Erro ao carregar comentários');
   }
+
+  // Buscar respostas para os comentários
+  const { data: respostasData, error: respostasError } = await supabase
+    .from('comentarios')
+    .select(`*`)
+    .in('comentario_pai_id', comentariosData.map(c => c.id))
+    .order('data_criacao', { ascending: true });
+
+  if (respostasError) {
+    console.error('Erro ao buscar respostas:', respostasError);
+  }
+
+  // Agrupar respostas por comentário pai
+  const respostasPorPai = (respostasData || []).reduce((acc, resposta) => {
+    if (!acc[resposta.comentario_pai_id]) {
+      acc[resposta.comentario_pai_id] = [];
+    }
+    acc[resposta.comentario_pai_id].push(resposta);
+    return acc;
+  }, {} as Record<string, Comentario[]>);
 
   // Buscar informações dos perfis de usuários
   const usuariosIds = comentariosData.map(c => c.usuario_id);
@@ -82,12 +101,13 @@ export const buscarComentarios = async (
   // Conjunto de IDs de comentários curtidos pelo usuário
   const comentariosCurtidos = new Set(curtidasData?.map(c => c.comentario_id) || []);
   
-  // Retornar comentários com informações adicionais
+  // Retornar comentários com informações adicionais e respostas
   return comentariosData.map(c => ({
     ...c,
     usuario_nome: perfisPorUsuarioId[c.usuario_id]?.nome || 'Usuário',
     usuario_avatar: perfisPorUsuarioId[c.usuario_id]?.avatar_url,
     curtido_pelo_usuario: comentariosCurtidos.has(c.id),
-    usuario_eh_admin: adminsIds.has(c.usuario_id)
+    usuario_eh_admin: adminsIds.has(c.usuario_id),
+    respostas: respostasPorPai[c.id] || []
   })) as Comentario[];
 };

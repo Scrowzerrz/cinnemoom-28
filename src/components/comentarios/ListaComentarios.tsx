@@ -23,10 +23,14 @@ interface ListaComentariosProps {
   onCurtir: (id: string, curtido: boolean) => void;
   onExcluir: (id: string) => void;
   onAlternarVisibilidade: (id: string, visivel: boolean) => void;
+  comentarioRespondendoId: string | null;
+  onResponder: (comentario: Comentario) => void;
+  onSubmitResposta: (comentarioPaiId: string, texto: string) => Promise<void>;
   isEditando: boolean;
   isExcluindo: boolean;
   isAlternandoVisibilidade: boolean;
   isAlternandoCurtida: boolean;
+  isRespondendo: boolean;
 }
 
 const ListaComentarios = ({
