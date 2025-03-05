@@ -482,7 +482,7 @@ export type Database = {
         Args: {
           comentario_id: string
           trancar: boolean
-          usuario_id: string
+          usuario_admin_id: string
         }
         Returns: undefined
       }
