@@ -190,7 +190,11 @@ export function SerieForm({
         </div>
         <SerieUrls form={form} />
         <SerieDescricao form={form} />
-        <SerieTemporadas temporadas={temporadasInfo} />
+        <SerieTemporadas 
+          temporadas={temporadasInfo} 
+          serieId={serieId}
+          isEditing={isEditing}
+        />
         <SerieSubmitButtons 
           loading={loading} 
           onCancel={onSuccess}
