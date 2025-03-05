@@ -149,7 +149,8 @@ const GerenciarSeries = () => {
     <div>
       <GerenciarSeriesHeader 
         termo={termo} 
-        onChangeTermo={setTermo} 
+        onChangeTermo={setTermo}
+        onSerieAdicionada={carregarSeries}
       />
       
       <Card className="bg-movieDark border-gray-800 overflow-hidden">
