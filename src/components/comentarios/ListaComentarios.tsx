@@ -1,7 +1,5 @@
-
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, AlertCircle } from 'lucide-react';
 import { Alert } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 import { AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from '@/components/ui/button';
