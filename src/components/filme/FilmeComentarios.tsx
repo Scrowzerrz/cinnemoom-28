@@ -58,7 +58,10 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
         comentarioRespondendoId={comentarioRespondendoId}
         onResponder={iniciarResposta}
         onSubmitResposta={async (comentarioPaiId, texto) => {
-          await adicionarComentario.mutateAsync(texto, comentarioPaiId);
+          await adicionarComentario.mutateAsync({
+            texto,
+            comentarioPaiId
+          });
         }}
         isEditando={editarComentario.isPending}
         isExcluindo={excluirComentario.isPending}

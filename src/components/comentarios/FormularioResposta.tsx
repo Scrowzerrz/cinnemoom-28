@@ -8,7 +8,7 @@ import { PerfilUsuario } from '@/hooks/auth/types';
 
 interface FormularioRespostaProps {
   usuarioLogado: boolean;
-  perfilUsuario: PerfilUsuario | null;
+  perfilUsuario: string | null;
   onSubmit: (texto: string) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -44,13 +44,10 @@ const FormularioResposta = ({
     <form onSubmit={handleSubmit} className="ml-12 mt-2">
       <div className="flex items-start gap-3">
         <Avatar className="h-8 w-8 bg-gray-800">
-          {perfilUsuario?.avatar_url ? (
-            <AvatarImage src={perfilUsuario.avatar_url} alt={perfilUsuario.nome || 'Avatar'} />
-          ) : (
-            <AvatarFallback className="bg-gray-800 text-white text-sm">
-              {perfilUsuario?.nome ? getInitials(perfilUsuario.nome) : 'U'}
-            </AvatarFallback>
-          )}
+          {/* Since perfilUsuario is now a string (the ID), we can't use it directly for avatar info */}
+          <AvatarFallback className="bg-gray-800 text-white text-sm">
+            U
+          </AvatarFallback>
         </Avatar>
         
         <div className="flex-1">

@@ -16,6 +16,12 @@ import {
 
 export { type Comentario };
 
+// Define a type for the adicionarComentario parameters
+interface AdicionarComentarioParams {
+  texto: string;
+  comentarioPaiId?: string | null;
+}
+
 export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
   const { session, perfil } = useAuth();
   const { ehAdmin } = useAdmin();
@@ -38,11 +44,17 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
 
   // Adicionar comentário (agora com suporte a respostas)
   const adicionarComentario = useMutation({
-    mutationFn: async (texto: string, comentarioPaiId?: string | null) => {
+    mutationFn: async (params: AdicionarComentarioParams) => {
       if (!session?.user) {
         throw new Error('Você precisa estar logado para comentar');
       }
-      await adicionarNovoComentario(texto, session.user.id, itemId, itemTipo, comentarioPaiId);
+      await adicionarNovoComentario(
+        params.texto, 
+        session.user.id, 
+        itemId, 
+        itemTipo, 
+        params.comentarioPaiId
+      );
     },
     onSuccess: () => {
       toast.success('Comentário adicionado com sucesso!');
