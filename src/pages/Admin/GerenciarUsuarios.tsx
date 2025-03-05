@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { useUsuarioAdmin } from '@/hooks/useUsuarioAdmin';
 import { BuscadorUsuarios } from '@/components/admin/usuario/BuscadorUsuarios';
@@ -7,7 +7,7 @@ import { TabelaUsuarios } from '@/components/admin/usuario/TabelaUsuarios';
 import { PaginacaoUsuarios } from '@/components/admin/usuario/PaginacaoUsuarios';
 
 const GerenciarUsuarios = () => {
-  const { usuarios, carregando, alternarAdmin } = useUsuarioAdmin();
+  const { usuarios, carregando, alternarAdmin, carregarUsuarios } = useUsuarioAdmin();
   const [termo, setTermo] = useState('');
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 10;
@@ -21,6 +21,11 @@ const GerenciarUsuarios = () => {
   const indiceFinal = paginaAtual * itensPorPagina;
   const indiceInicial = indiceFinal - itensPorPagina;
   const usuariosPaginados = usuariosFiltrados.slice(indiceInicial, indiceFinal);
+  
+  // Recarregar usuários quando o componente montar
+  useEffect(() => {
+    carregarUsuarios();
+  }, []);
 
   return (
     <div>
