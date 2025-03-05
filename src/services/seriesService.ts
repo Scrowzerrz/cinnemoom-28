@@ -119,8 +119,6 @@ export const fetchAllSeries = async (filtroCategoria?: string): Promise<MovieCar
 // Função para buscar detalhes de uma série específica, incluindo temporadas e episódios
 export const fetchSerieDetails = async (serieId: string): Promise<SerieDetalhes | null> => {
   try {
-    console.log(`Buscando detalhes da série ID: ${serieId}`);
-    
     // Buscar informações básicas da série
     const { data: serieData, error: serieError } = await supabase
       .from('series')
@@ -134,15 +132,12 @@ export const fetchSerieDetails = async (serieId: string): Promise<SerieDetalhes 
     }
     
     if (!serieData) {
-      console.error('Série não encontrada');
       return null;
     }
 
     const serie = serieData as SerieDB;
-    console.log(`Série encontrada: ${serie.titulo}`);
     
     // Buscar temporadas da série
-    console.log(`Buscando temporadas para série ID: ${serieId}`);
     const { data: temporadasData, error: temporadasError } = await supabase
       .from('temporadas')
       .select('*')
@@ -154,12 +149,9 @@ export const fetchSerieDetails = async (serieId: string): Promise<SerieDetalhes 
       throw temporadasError;
     }
 
-    console.log(`Encontradas ${temporadasData?.length || 0} temporadas`);
-
-    // Mapear temporadas e buscar episódios
+    // Mapear temporadas
     const temporadas = await Promise.all((temporadasData || []).map(async (temporada: TemporadaDB) => {
       // Buscar episódios de cada temporada
-      console.log(`Buscando episódios para temporada ID: ${temporada.id} (Temporada ${temporada.numero})`);
       const { data: episodiosData, error: episodiosError } = await supabase
         .from('episodios')
         .select('*')
@@ -171,8 +163,6 @@ export const fetchSerieDetails = async (serieId: string): Promise<SerieDetalhes 
         return { ...temporada, episodios: [] };
       }
       
-      console.log(`Encontrados ${episodiosData?.length || 0} episódios para temporada ${temporada.numero}`);
-      
       return {
         ...temporada,
         episodios: episodiosData as EpisodioDB[] || []
@@ -180,14 +170,10 @@ export const fetchSerieDetails = async (serieId: string): Promise<SerieDetalhes 
     }));
     
     // Construir objeto de detalhes da série
-    const serieDetalhes = {
+    return {
       ...serie,
       temporadas: temporadas
     } as SerieDetalhes;
-    
-    console.log(`Detalhes da série carregados com sucesso. Total de temporadas: ${serieDetalhes.temporadas.length}`);
-    
-    return serieDetalhes;
   } catch (error) {
     console.error('Erro ao buscar detalhes da série:', error);
     return null;
