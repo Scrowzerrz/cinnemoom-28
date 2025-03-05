@@ -51,11 +51,8 @@ serve(async (req) => {
       
       Comentário: "${commentText}"
       
-      IMPORTANTE: Responda APENAS com um JSON no seguinte formato:
-      {
-        "isAppropriate": true/false,
-        "reason": "Explicação detalhada se o comentário for inapropriado"
-      }
+      IMPORTANTE: Responda APENAS com um objeto JSON no seguinte formato, SEM MARKDOWN, SEM FORMATAÇÃO ADICIONAL, apenas o JSON puro:
+      {"isAppropriate": true/false, "reason": "Explicação detalhada se o comentário for inapropriado"}
       
       Se o comentário contiver qualquer violação das diretrizes, isAppropriate deve ser false e você deve explicar exatamente qual regra foi violada e por quê.
     `;
@@ -71,7 +68,7 @@ serve(async (req) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        "model": "google/gemini-2.0-pro-exp-02-05:free",  // Corrected model name
+        "model": "google/gemini-2.0-pro-exp-02-05:free",
         "messages": [
           {
             "role": "user",
@@ -98,9 +95,15 @@ serve(async (req) => {
       const aiResponse = data.choices[0].message.content;
       console.log("Raw AI response:", aiResponse);
       
+      // Clean up the AI response to handle markdown or other formatting
+      const cleanedResponse = aiResponse
+        .replace(/```json/g, '') // Remove markdown json tags
+        .replace(/```/g, '')     // Remove closing markdown tags
+        .trim();                 // Trim whitespace
+      
       try {
-        // Parse the JSON response from the AI
-        moderationResult = JSON.parse(aiResponse);
+        // Parse the cleaned JSON response
+        moderationResult = JSON.parse(cleanedResponse);
         
         // Validate the response structure
         if (typeof moderationResult.isAppropriate !== 'boolean') {
@@ -109,15 +112,6 @@ serve(async (req) => {
           moderationResult = { 
             isAppropriate: false, 
             reason: "Erro de validação - comentário bloqueado preventivamente" 
-          };
-        }
-        
-        // If the AI is unsure or gives an unusual response, block the comment
-        if (!aiResponse.includes('"isAppropriate":') || !aiResponse.includes('"reason":')) {
-          console.warn('AI response missing required fields:', aiResponse);
-          moderationResult = { 
-            isAppropriate: false, 
-            reason: "Formato de resposta inválido - comentário bloqueado preventivamente" 
           };
         }
         
@@ -138,11 +132,23 @@ serve(async (req) => {
         console.error('Error parsing AI response JSON:', jsonError);
         console.log('Raw AI response that failed parsing:', aiResponse);
         
-        // Set a default response if parsing fails
-        moderationResult = { 
-          isAppropriate: false, 
-          reason: "Erro ao analisar o comentário - bloqueado preventivamente" 
-        };
+        // If JSON parsing fails, perform a simple check for offensive terms
+        const lowerCaseComment = commentText.toLowerCase();
+        const offensiveTerms = ['porra', 'caralho', 'merda', 'fdp', 'puta', 'viado', 'bicha', 'cú', 'cu', 'foda-se', 'fuck'];
+        const containsOffensiveTerm = offensiveTerms.some(term => lowerCaseComment.includes(term));
+        
+        if (containsOffensiveTerm) {
+          moderationResult = {
+            isAppropriate: false,
+            reason: "Linguagem ofensiva detectada. Comentários com palavrões não são permitidos."
+          };
+        } else {
+          // Default response if we can't parse the AI's response
+          moderationResult = { 
+            isAppropriate: false, 
+            reason: "Erro ao analisar o comentário - bloqueado preventivamente" 
+          };
+        }
       }
       
     } catch (error) {
