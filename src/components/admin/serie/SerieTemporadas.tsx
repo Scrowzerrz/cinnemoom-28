@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Tv, Film, PlusCircle } from "lucide-react";
+import { Tv, Film, PlusCircle, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { GerenciarTemporadasDialog } from "./GerenciarTemporadasDialog";
 
@@ -15,6 +15,12 @@ interface SerieTemporadasProps {
 
 export function SerieTemporadas({ temporadas, serieId, isEditing = false }: SerieTemporadasProps) {
   const [dialogoAberto, setDialogoAberto] = useState(false);
+  
+  // Verifica se pelo menos um episódio em uma temporada tem um player configurado
+  const temPlayerConfigurado = (temporada: any) => {
+    const episodios = temporada.episodes || temporada.episodios || [];
+    return episodios.some((ep: any) => ep.player_url);
+  };
   
   if (!temporadas || temporadas.length === 0) {
     return (
@@ -97,6 +103,11 @@ export function SerieTemporadas({ temporadas, serieId, isEditing = false }: Seri
                       {(temporada.episodes?.length || temporada.episodios?.length || 0)} episódios
                     </Badge>
                   )}
+                  {temPlayerConfigurado(temporada) && (
+                    <Badge variant="outline" className="ml-2 text-xs text-green-400 border-green-400">
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Player
+                    </Badge>
+                  )}
                 </div>
               </AccordionTrigger>
               <AccordionContent>
@@ -123,7 +134,7 @@ export function SerieTemporadas({ temporadas, serieId, isEditing = false }: Seri
                         </div>
                         {episodio.player_url && (
                           <Badge variant="outline" className="text-green-400 border-green-400 text-xs">
-                            Player Disponível
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> Player Disponível
                           </Badge>
                         )}
                       </div>

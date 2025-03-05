@@ -159,6 +159,7 @@ const GerenciarSeries = () => {
           carregando={carregando}
           excluindo={excluindo}
           onDelete={handleDelete}
+          onEditSuccess={carregarSeries}
         />
         
         {seriesFiltradas.length > itensPorPagina && (
