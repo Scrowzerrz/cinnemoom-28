@@ -67,6 +67,12 @@ export function SerieForm({
       } else {
         // Adicionar nova série
         // Garantir que os campos obrigatórios estejam presentes
+        if (!data.titulo || !data.ano || !data.poster_url) {
+          toast.error("Campos obrigatórios em falta: título, ano ou URL do poster");
+          setLoading(false);
+          return;
+        }
+        
         const serieToInsert = {
           ...data,
           created_at: new Date().toISOString(),
@@ -78,7 +84,7 @@ export function SerieForm({
         
         const { data: serieData, error } = await supabase
           .from('series')
-          .insert(serieToInsert)
+          .insert([serieToInsert]) // Corrigido para inserir um array com o objeto
           .select('id')
           .single();
 
