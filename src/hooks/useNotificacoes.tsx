@@ -13,7 +13,7 @@ export interface Notificacao {
   lida: boolean;
   created_at: string;
   item_id: string;
-  item_tipo: 'filme' | 'serie' | 'episodio' | 'temporada';
+  item_tipo: string;
 }
 
 export const useNotificacoes = () => {
@@ -25,6 +25,8 @@ export const useNotificacoes = () => {
     queryKey: ['notificacoes', perfil?.id],
     queryFn: async () => {
       if (!perfil?.id) return [];
+      
+      console.log('Buscando notificações para o usuário:', perfil.id);
       
       const { data, error } = await supabase
         .from('notificacoes')
@@ -38,6 +40,7 @@ export const useNotificacoes = () => {
         return [];
       }
 
+      console.log('Notificações encontradas:', data);
       return data as Notificacao[];
     },
     enabled: !!perfil?.id,
@@ -48,18 +51,26 @@ export const useNotificacoes = () => {
     mutationFn: async (notificacaoId: string) => {
       if (!perfil?.id) throw new Error('Usuário não autenticado');
 
+      console.log('Marcando notificação como lida:', notificacaoId);
+      
       const { error } = await supabase
         .from('notificacoes')
         .update({ lida: true })
         .eq('id', notificacaoId)
         .eq('user_id', perfil.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao marcar notificação como lida:', error);
+        throw error;
+      }
+      
+      console.log('Notificação marcada como lida com sucesso');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Erro na mutação de marcar como lida:', error);
       toast.error('Erro ao atualizar notificação');
     },
   });

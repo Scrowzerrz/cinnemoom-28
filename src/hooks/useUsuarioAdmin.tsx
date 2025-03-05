@@ -115,19 +115,30 @@ export function useUsuarioAdmin() {
         
         // Enviar notificação para o usuário que foi promovido a admin
         if (perfil) {
-          const { error: erroNotif } = await supabase
+          console.log(`Enviando notificação para novo admin ${usuario.id} por ${perfil.nome || perfil.email}`);
+          
+          const notificacaoData = {
+            user_id: usuario.id,
+            titulo: 'Você é um Administrador Agora!',
+            mensagem: `${perfil.nome || perfil.email} concedeu a você permissões de administrador. Agora você pode acessar o painel administrativo e gerenciar usuários, filmes e séries.`,
+            tipo: 'admin_promocao',
+            item_id: usuario.id,
+            item_tipo: 'perfil'
+          };
+          
+          console.log('Dados da notificação:', notificacaoData);
+          
+          const { data, error: erroNotif } = await supabase
             .from('notificacoes')
-            .insert({
-              user_id: usuario.id,
-              titulo: 'Você é um Administrador Agora!',
-              mensagem: `${perfil.nome || perfil.email} concedeu a você permissões de administrador. Agora você pode acessar o painel administrativo e gerenciar usuários, filmes e séries.`,
-              tipo: 'admin_promocao',
-              item_id: usuario.id,
-              item_tipo: 'perfil'
-            });
+            .insert(notificacaoData)
+            .select();
           
           if (erroNotif) {
             console.error("Erro ao enviar notificação:", erroNotif);
+            toast.error(`Erro ao enviar notificação: ${erroNotif.message}`);
+          } else {
+            console.log("Notificação enviada com sucesso:", data);
+            toast.success("Notificação enviada ao novo administrador");
           }
         }
         
