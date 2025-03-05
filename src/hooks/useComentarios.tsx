@@ -1,26 +1,20 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useAdmin } from './useAdmin';
+import { Comentario } from '@/types/comentario.types';
+import { buscarComentarios } from '@/services/comentariosService';
+import {
+  adicionarNovoComentario,
+  editarComentarioExistente,
+  excluirComentarioExistente,
+  alternarVisibilidadeComentario,
+  alternarCurtidaComentario
+} from '@/services/mutacoesComentarios';
 
-export interface Comentario {
-  id: string;
-  usuario_id: string;
-  item_id: string;
-  item_tipo: 'filme' | 'serie';
-  texto: string;
-  data_criacao: string;
-  data_atualizacao: string;
-  visivel: boolean;
-  curtidas: number;
-  // Campos adicionais que virão com joins
-  usuario_nome?: string;
-  usuario_avatar?: string;
-  curtido_pelo_usuario?: boolean;
-  usuario_eh_admin?: boolean; // Novo campo para indicar se o usuário é admin
-}
+export { type Comentario };
 
 export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
   const { session, perfil } = useAuth();
@@ -37,101 +31,7 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     refetch
   } = useQuery({
     queryKey: ['comentarios', itemId, itemTipo],
-    queryFn: async () => {
-      console.log(`Buscando comentários para ${itemTipo} ${itemId}`);
-      
-      // Consulta principal para buscar comentários
-      let query = supabase
-        .from('comentarios')
-        .select(`
-          *
-        `)
-        .eq('item_id', itemId)
-        .eq('item_tipo', itemTipo as string)
-        .order('data_criacao', { ascending: false });
-      
-      // Caso não seja admin, mostrar apenas comentários visíveis
-      if (!ehAdmin) {
-        query = query.eq('visivel', true);
-      }
-      
-      const { data: comentariosData, error: comentariosError } = await query;
-      
-      if (comentariosError) {
-        console.error('Erro ao buscar comentários:', comentariosError);
-        throw new Error('Erro ao carregar comentários');
-      }
-
-      // Agora, buscar informações dos perfis de usuários para cada comentário
-      const usuariosIds = comentariosData.map(c => c.usuario_id);
-      const { data: perfisData, error: perfisError } = await supabase
-        .from('perfis')
-        .select('id, nome, avatar_url')
-        .in('id', usuariosIds);
-      
-      if (perfisError) {
-        console.error('Erro ao buscar perfis:', perfisError);
-        // Continuamos mesmo com erro, apenas sem informações de perfis
-      }
-      
-      // Mapeamento de ID do usuário para dados do perfil
-      const perfisPorUsuarioId = (perfisData || []).reduce((acc, perfil) => {
-        acc[perfil.id] = perfil;
-        return acc;
-      }, {} as Record<string, { id: string, nome: string | null, avatar_url: string | null }>);
-      
-      // Buscar lista de administradores
-      const { data: adminsData, error: adminsError } = await supabase
-        .from('papeis_usuario')
-        .select('user_id')
-        .eq('papel', 'admin');
-        
-      if (adminsError) {
-        console.error('Erro ao buscar administradores:', adminsError);
-        // Continuamos mesmo com erro
-      }
-      
-      // Conjunto com IDs dos administradores
-      const adminsIds = new Set(
-        (adminsData || []).map(admin => admin.user_id)
-      );
-      
-      // Se não há usuário logado, retornamos os comentários sem verificar curtidas
-      if (!session?.user) {
-        return comentariosData.map(c => ({
-          ...c,
-          usuario_nome: perfisPorUsuarioId[c.usuario_id]?.nome || 'Usuário',
-          usuario_avatar: perfisPorUsuarioId[c.usuario_id]?.avatar_url,
-          curtido_pelo_usuario: false,
-          usuario_eh_admin: adminsIds.has(c.usuario_id)
-        })) as Comentario[];
-      }
-      
-      // Verificar quais comentários o usuário atual curtiu
-      const { data: curtidasData, error: curtidasError } = await supabase
-        .from('curtidas_comentarios')
-        .select('comentario_id')
-        .eq('usuario_id', session.user.id);
-      
-      if (curtidasError) {
-        console.error('Erro ao buscar curtidas:', curtidasError);
-        // Continuamos mesmo com erro, apenas sem informações de curtidas
-      }
-      
-      // Conjunto de IDs de comentários curtidos pelo usuário
-      const comentariosCurtidos = new Set(
-        curtidasData?.map(c => c.comentario_id) || []
-      );
-      
-      // Retornar comentários com informações adicionais
-      return comentariosData.map(c => ({
-        ...c,
-        usuario_nome: perfisPorUsuarioId[c.usuario_id]?.nome || 'Usuário',
-        usuario_avatar: perfisPorUsuarioId[c.usuario_id]?.avatar_url,
-        curtido_pelo_usuario: comentariosCurtidos.has(c.id),
-        usuario_eh_admin: adminsIds.has(c.usuario_id)
-      })) as Comentario[];
-    },
+    queryFn: () => buscarComentarios(itemId, itemTipo, ehAdmin, session?.user?.id),
     enabled: !!itemId
   });
 
@@ -141,31 +41,13 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
       if (!session?.user) {
         throw new Error('Você precisa estar logado para comentar');
       }
-      
-      const { data, error } = await supabase
-        .from('comentarios')
-        .insert({
-          usuario_id: session.user.id,
-          item_id: itemId,
-          item_tipo: itemTipo,
-          texto
-        })
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error('Erro ao adicionar comentário:', error);
-        throw new Error('Erro ao adicionar comentário');
-      }
-      
-      return data;
+      return adicionarNovoComentario(texto, session.user.id, itemId, itemTipo);
     },
     onSuccess: () => {
       toast.success('Comentário adicionado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['comentarios', itemId, itemTipo] });
     },
     onError: (error) => {
-      console.error('Erro na mutação de adicionar comentário:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao adicionar comentário');
     }
   });
@@ -176,23 +58,7 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
       if (!session?.user) {
         throw new Error('Você precisa estar logado para editar comentários');
       }
-      
-      const { data, error } = await supabase
-        .from('comentarios')
-        .update({ 
-          texto,
-          data_atualizacao: new Date().toISOString()
-        })
-        .eq('id', id)
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error('Erro ao editar comentário:', error);
-        throw new Error('Erro ao editar comentário');
-      }
-      
-      return data;
+      return editarComentarioExistente(id, texto);
     },
     onSuccess: () => {
       toast.success('Comentário atualizado com sucesso!');
@@ -201,7 +67,6 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
       queryClient.invalidateQueries({ queryKey: ['comentarios', itemId, itemTipo] });
     },
     onError: (error) => {
-      console.error('Erro na mutação de editar comentário:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao editar comentário');
     }
   });
@@ -212,49 +77,24 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
       if (!session?.user) {
         throw new Error('Você precisa estar logado para excluir comentários');
       }
-      
-      const { error } = await supabase
-        .from('comentarios')
-        .delete()
-        .eq('id', id);
-      
-      if (error) {
-        console.error('Erro ao excluir comentário:', error);
-        throw new Error('Erro ao excluir comentário');
-      }
-      
-      return id;
+      return excluirComentarioExistente(id);
     },
     onSuccess: () => {
       toast.success('Comentário excluído com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['comentarios', itemId, itemTipo] });
     },
     onError: (error) => {
-      console.error('Erro na mutação de excluir comentário:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao excluir comentário');
     }
   });
 
-  // Alternar visibilidade do comentário (apenas admin)
+  // Alternar visibilidade
   const alternarVisibilidade = useMutation({
     mutationFn: async ({ id, visivel }: { id: string; visivel: boolean }) => {
       if (!session?.user || !ehAdmin) {
         throw new Error('Você não tem permissão para realizar esta ação');
       }
-      
-      const { data, error } = await supabase
-        .from('comentarios')
-        .update({ visivel: !visivel })
-        .eq('id', id)
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error('Erro ao alternar visibilidade:', error);
-        throw new Error('Erro ao alternar visibilidade do comentário');
-      }
-      
-      return data;
+      return alternarVisibilidadeComentario(id, visivel);
     },
     onSuccess: (data) => {
       const status = data.visivel ? 'exibido' : 'ocultado';
@@ -262,49 +102,19 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
       queryClient.invalidateQueries({ queryKey: ['comentarios', itemId, itemTipo] });
     },
     onError: (error) => {
-      console.error('Erro na mutação de alternar visibilidade:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao alternar visibilidade');
     }
   });
 
-  // Curtir ou remover curtida de um comentário
+  // Curtir ou remover curtida
   const alternarCurtida = useMutation({
     mutationFn: async ({ id, curtido }: { id: string; curtido: boolean }) => {
       if (!session?.user) {
         throw new Error('Você precisa estar logado para curtir comentários');
       }
-      
-      if (curtido) {
-        // Remover curtida
-        const { error } = await supabase
-          .from('curtidas_comentarios')
-          .delete()
-          .eq('comentario_id', id)
-          .eq('usuario_id', session.user.id);
-        
-        if (error) {
-          console.error('Erro ao remover curtida:', error);
-          throw new Error('Erro ao remover curtida');
-        }
-      } else {
-        // Adicionar curtida
-        const { error } = await supabase
-          .from('curtidas_comentarios')
-          .insert({
-            comentario_id: id,
-            usuario_id: session.user.id
-          });
-        
-        if (error) {
-          console.error('Erro ao adicionar curtida:', error);
-          throw new Error('Erro ao curtir comentário');
-        }
-      }
-      
-      return { id, novoEstado: !curtido };
+      return alternarCurtidaComentario(id, session.user.id, curtido);
     },
     onSuccess: ({ id, novoEstado }) => {
-      // Atualizar otimisticamente o estado local
       queryClient.setQueryData(
         ['comentarios', itemId, itemTipo], 
         (old: Comentario[] | undefined) => {
@@ -322,9 +132,7 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
       );
     },
     onError: (error) => {
-      console.error('Erro na mutação de alternar curtida:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao curtir comentário');
-      // Refetch para garantir consistência dos dados
       queryClient.invalidateQueries({ queryKey: ['comentarios', itemId, itemTipo] });
     }
   });
