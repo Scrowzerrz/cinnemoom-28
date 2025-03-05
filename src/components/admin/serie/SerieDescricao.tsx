@@ -3,6 +3,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/comp
 import { Card, CardContent } from "@/components/ui/card";
 import { UseFormReturn } from "react-hook-form";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { SerieFormData } from "@/schemas/serieSchema";
 
 interface SerieDescricaoProps {

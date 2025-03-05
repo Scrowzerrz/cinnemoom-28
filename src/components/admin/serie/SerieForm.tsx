@@ -66,14 +66,19 @@ export function SerieForm({
         toast.success("Série atualizada com sucesso!");
       } else {
         // Adicionar nova série
+        // Garantir que os campos obrigatórios estejam presentes
+        const serieToInsert = {
+          ...data,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          tipo: 'series'
+        };
+        
+        console.log("Dados a serem inseridos:", serieToInsert);
+        
         const { data: serieData, error } = await supabase
           .from('series')
-          .insert([{
-            ...data,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            tipo: 'series'
-          }])
+          .insert(serieToInsert)
           .select('id')
           .single();
 
