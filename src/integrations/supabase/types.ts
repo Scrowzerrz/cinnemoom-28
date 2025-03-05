@@ -19,6 +19,7 @@ export type Database = {
           id: string
           item_id: string
           item_tipo: string
+          metadata: Json | null
           texto: string
           trancado: boolean
           trancado_por: string | null
@@ -34,6 +35,7 @@ export type Database = {
           id?: string
           item_id: string
           item_tipo: string
+          metadata?: Json | null
           texto: string
           trancado?: boolean
           trancado_por?: string | null
@@ -49,6 +51,7 @@ export type Database = {
           id?: string
           item_id?: string
           item_tipo?: string
+          metadata?: Json | null
           texto?: string
           trancado?: boolean
           trancado_por?: string | null
