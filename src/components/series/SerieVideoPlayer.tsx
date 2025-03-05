@@ -1,5 +1,6 @@
+
 import { Button } from '@/components/ui/button';
-import { Play, Info } from 'lucide-react';
+import { Play, Info, AlertCircle } from 'lucide-react';
 import { SerieDetalhes, TemporadaDB, EpisodioDB } from '@/services/types/movieTypes';
 import VideoPlayer from '@/components/player/VideoPlayer';
 
@@ -21,6 +22,8 @@ const SerieVideoPlayer = ({
   trocarEpisodio
 }: SerieVideoPlayerProps) => {
   const getPlayerUrl = (url: string): string => {
+    if (!url) return "";
+    
     try {
       new URL(url);
       
@@ -38,28 +41,78 @@ const SerieVideoPlayer = ({
     }
   };
 
+  // Verificar se há episódios disponíveis
+  const temEpisodiosDisponiveis = 
+    temporadaAtual && 
+    temporadaAtual.episodios && 
+    temporadaAtual.episodios.length > 0;
+
   return (
     <div className="mt-6">
       <div className="w-full mb-8 rounded-xl overflow-hidden shadow-2xl">
         {isTrailer ? (
-          <div className="aspect-video bg-black/40 overflow-hidden relative group">
-            <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none" />
-            
-            <iframe
-              src={getPlayerUrl(serie.trailer_url)}
-              title={`Trailer: ${serie.titulo}`}
-              className="w-full h-full z-0"
-              allowFullScreen
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-            ></iframe>
-          </div>
-        ) : episodioAtual ? (
+          serie.trailer_url ? (
+            <div className="aspect-video bg-black/40 overflow-hidden relative group">
+              <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none" />
+              
+              <iframe
+                src={getPlayerUrl(serie.trailer_url)}
+                title={`Trailer: ${serie.titulo}`}
+                className="w-full h-full z-0"
+                allowFullScreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+              ></iframe>
+            </div>
+          ) : (
+            <div className="aspect-video bg-movieDark flex flex-col items-center justify-center p-8 text-center">
+              <AlertCircle className="h-12 w-12 text-movieRed mb-4" />
+              <h3 className="text-white text-xl font-semibold mb-2">Trailer não disponível</h3>
+              <p className="text-white/70 mb-4">Esta série não possui trailer cadastrado.</p>
+              {temEpisodiosDisponiveis && (
+                <Button onClick={() => setIsTrailer(false)} className="bg-movieRed hover:bg-movieRed/90">
+                  <Play className="mr-2 h-4 w-4 fill-white" /> Ver episódios
+                </Button>
+              )}
+            </div>
+          )
+        ) : episodioAtual && episodioAtual.player_url ? (
           <VideoPlayer 
             playerUrl={episodioAtual.player_url} 
             posterUrl={episodioAtual.thumbnail_url || serie.poster_url} 
             title={`${serie.titulo} - ${episodioAtual.titulo}`} 
           />
+        ) : episodioAtual && !episodioAtual.player_url ? (
+          <div className="relative aspect-video overflow-hidden rounded-lg">
+            <div 
+              className="absolute inset-0 bg-cover bg-center" 
+              style={{ backgroundImage: `url(${episodioAtual.thumbnail_url || serie.poster_url})` }}
+            />
+            
+            <div className="absolute inset-0 bg-black/70 bg-gradient-to-t from-black via-black/80 to-black/50" />
+            
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <div className="text-center max-w-lg px-6">
+                <AlertCircle className="h-12 w-12 text-movieRed mx-auto mb-4" />
+                <h3 className="text-white text-xl font-semibold mb-2">
+                  Player indisponível para este episódio
+                </h3>
+                <p className="text-white/70 mb-4">
+                  O episódio "{episodioAtual.titulo}" ainda não possui player configurado.
+                  Por favor, tente outro episódio ou volte mais tarde.
+                </p>
+                
+                {serie.trailer_url && (
+                  <Button 
+                    onClick={() => setIsTrailer(true)}
+                    className="bg-movieRed hover:bg-movieRed/90"
+                  >
+                    <Play className="mr-2 h-4 w-4 fill-white" /> Assistir trailer
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="relative aspect-video overflow-hidden rounded-lg">
             <div 
@@ -71,16 +124,38 @@ const SerieVideoPlayer = ({
             
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <div className="text-center max-w-lg px-6">
-                <h3 className="text-white text-xl font-semibold mb-3">Comece a assistir {serie.titulo}</h3>
-                <p className="text-white/70 mb-6">Selecione um episódio para começar a assistir esta incrível série</p>
-                
-                {temporadaAtual?.episodios && temporadaAtual.episodios.length > 0 && (
-                  <Button 
-                    onClick={() => trocarEpisodio(temporadaAtual.episodios[0].id)}
-                    className="bg-movieRed hover:bg-movieRed/90"
-                  >
-                    <Play className="mr-2 h-4 w-4 fill-white" /> Assistir primeiro episódio
-                  </Button>
+                {temEpisodiosDisponiveis ? (
+                  <>
+                    <h3 className="text-white text-xl font-semibold mb-3">Comece a assistir {serie.titulo}</h3>
+                    <p className="text-white/70 mb-6">Selecione um episódio para começar a assistir esta incrível série</p>
+                    
+                    <Button 
+                      onClick={() => trocarEpisodio(temporadaAtual.episodios[0].id)}
+                      className="bg-movieRed hover:bg-movieRed/90"
+                    >
+                      <Play className="mr-2 h-4 w-4 fill-white" /> Assistir primeiro episódio
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-12 w-12 text-movieRed mx-auto mb-4" />
+                    <h3 className="text-white text-xl font-semibold mb-2">
+                      Episódios indisponíveis
+                    </h3>
+                    <p className="text-white/70 mb-4">
+                      Esta série ainda não possui episódios disponíveis.
+                      {serie.trailer_url ? " Você pode assistir ao trailer enquanto isso." : ""}
+                    </p>
+                    
+                    {serie.trailer_url && (
+                      <Button 
+                        onClick={() => setIsTrailer(true)}
+                        className="bg-movieRed hover:bg-movieRed/90"
+                      >
+                        <Play className="mr-2 h-4 w-4 fill-white" /> Assistir trailer
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -94,7 +169,7 @@ const SerieVideoPlayer = ({
             {isTrailer ? 'Trailer Oficial' : (episodioAtual ? episodioAtual.titulo : 'Selecione um episódio')}
           </h2>
           {!isTrailer && episodioAtual && (
-            <p className="text-movieGray text-sm mt-1">{temporadaAtual?.titulo} • Episódio {episodioAtual.numero} • {episodioAtual.duracao}</p>
+            <p className="text-movieGray text-sm mt-1">{temporadaAtual?.titulo} • Episódio {episodioAtual.numero} • {episodioAtual.duracao || 'Duração não informada'}</p>
           )}
         </div>
         
@@ -102,6 +177,7 @@ const SerieVideoPlayer = ({
           <Button 
             variant={isTrailer ? "outline" : "default"} 
             size="sm" 
+            disabled={!temEpisodiosDisponiveis}
             className={isTrailer ? "border-white/30 text-white bg-white/10 hover:bg-white/20" : "bg-movieRed hover:bg-movieRed/90"}
             onClick={() => setIsTrailer(false)}
           >
@@ -111,6 +187,7 @@ const SerieVideoPlayer = ({
           <Button 
             variant={!isTrailer ? "outline" : "default"} 
             size="sm" 
+            disabled={!serie.trailer_url}
             className={!isTrailer ? "border-white/30 text-white bg-white/10 hover:bg-white/20" : "bg-movieRed hover:bg-movieRed/90"}
             onClick={() => setIsTrailer(true)}
           >
@@ -140,16 +217,21 @@ const SerieVideoPlayer = ({
               >
                 <div className="aspect-video bg-movieDark rounded-md overflow-hidden relative group">
                   <img 
-                    src={ep.thumbnail_url} 
+                    src={ep.thumbnail_url || `https://placehold.co/480x270/1a1a2e/white?text=Episódio+${ep.numero}`} 
                     alt={ep.titulo} 
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = `https://placehold.co/480x270/1a1a2e/white?text=Episódio+${ep.numero}`;
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent flex flex-col justify-end p-3">
                     <div className="flex items-center justify-between">
                       <span className="bg-movieRed/90 text-white text-xs px-2 py-0.5 rounded-sm font-medium">
                         Ep {ep.numero}
                       </span>
-                      <span className="text-white/80 text-xs">{ep.duracao}</span>
+                      <span className="text-white/80 text-xs">{ep.duracao || 'Duração não informada'}</span>
                     </div>
                     <h4 className="text-white text-sm font-medium mt-2 line-clamp-2">{ep.titulo}</h4>
                   </div>
@@ -159,6 +241,12 @@ const SerieVideoPlayer = ({
                       <Play className="h-6 w-6 fill-white" />
                     </div>
                   </div>
+                  
+                  {ep.player_url && (
+                    <div className="absolute top-2 right-2 bg-green-500/80 rounded-full p-1" title="Player disponível">
+                      <Play className="h-3 w-3 fill-white" />
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
