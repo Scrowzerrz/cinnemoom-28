@@ -68,6 +68,8 @@ export const fetchSeries = async (categoria: string): Promise<MovieCardProps[]> 
       throw error;
     }
     
+    console.log(`Encontradas ${data?.length || 0} séries para a categoria ${categoria}`);
+    
     // Mapeamos cada série para o formato MovieCardProps
     return (data || []).map(serie => {
       // Adicionamos o campo player_url que está faltando para compatibilidade com mapToMovieCard
@@ -86,6 +88,8 @@ export const fetchSeries = async (categoria: string): Promise<MovieCardProps[]> 
 // Função para buscar todas as séries para a página de séries
 export const fetchAllSeries = async (filtroCategoria?: string): Promise<MovieCardProps[]> => {
   try {
+    console.log(`Buscando todas as séries ${filtroCategoria ? `com filtro: ${filtroCategoria}` : 'sem filtro'}`);
+    
     let query = supabase
       .from('series')
       .select('*');
@@ -100,6 +104,8 @@ export const fetchAllSeries = async (filtroCategoria?: string): Promise<MovieCar
       console.error('Erro ao buscar todas as séries:', error);
       throw error;
     }
+    
+    console.log(`Encontradas ${data?.length || 0} séries`);
     
     // Mapeamos cada série para o formato MovieCardProps
     return (data || []).map(serie => {
@@ -119,6 +125,8 @@ export const fetchAllSeries = async (filtroCategoria?: string): Promise<MovieCar
 // Função para buscar detalhes de uma série específica, incluindo temporadas e episódios
 export const fetchSerieDetails = async (serieId: string): Promise<SerieDetalhes | null> => {
   try {
+    console.log(`Buscando detalhes da série ID: ${serieId}`);
+    
     // Buscar informações básicas da série
     const { data: serieData, error: serieError } = await supabase
       .from('series')
@@ -132,12 +140,15 @@ export const fetchSerieDetails = async (serieId: string): Promise<SerieDetalhes 
     }
     
     if (!serieData) {
+      console.error('Série não encontrada com ID:', serieId);
       return null;
     }
 
+    console.log(`Série encontrada: ${serieData.titulo}`);
     const serie = serieData as SerieDB;
     
     // Buscar temporadas da série
+    console.log(`Buscando temporadas para série ID: ${serieId}`);
     const { data: temporadasData, error: temporadasError } = await supabase
       .from('temporadas')
       .select('*')
@@ -149,9 +160,12 @@ export const fetchSerieDetails = async (serieId: string): Promise<SerieDetalhes 
       throw temporadasError;
     }
 
+    console.log(`Encontradas ${temporadasData?.length || 0} temporadas para a série ${serie.titulo}`);
+
     // Mapear temporadas
     const temporadas = await Promise.all((temporadasData || []).map(async (temporada: TemporadaDB) => {
       // Buscar episódios de cada temporada
+      console.log(`Buscando episódios para temporada ${temporada.numero} (ID: ${temporada.id})`);
       const { data: episodiosData, error: episodiosError } = await supabase
         .from('episodios')
         .select('*')
@@ -163,6 +177,8 @@ export const fetchSerieDetails = async (serieId: string): Promise<SerieDetalhes 
         return { ...temporada, episodios: [] };
       }
       
+      console.log(`Encontrados ${episodiosData?.length || 0} episódios para temporada ${temporada.numero}`);
+      
       return {
         ...temporada,
         episodios: episodiosData as EpisodioDB[] || []
@@ -170,10 +186,13 @@ export const fetchSerieDetails = async (serieId: string): Promise<SerieDetalhes 
     }));
     
     // Construir objeto de detalhes da série
-    return {
+    const serieDetalhes = {
       ...serie,
       temporadas: temporadas
     } as SerieDetalhes;
+    
+    console.log(`Detalhes da série ${serie.titulo} carregados com sucesso com ${temporadas.length} temporadas`);
+    return serieDetalhes;
   } catch (error) {
     console.error('Erro ao buscar detalhes da série:', error);
     return null;

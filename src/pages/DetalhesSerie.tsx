@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { fetchSerieDetails, incrementarVisualizacaoSerie } from '@/services/movieService';
+import { fetchSerieDetails, incrementarVisualizacaoSerie } from '@/services/seriesService';
 import { TabsContent, Tabs } from '@/components/ui/tabs';
 
 import SerieHeader from '@/components/series/SerieHeader';
@@ -27,11 +27,14 @@ const DetalhesSerie = () => {
   const { 
     data: serie, 
     isLoading, 
-    error 
+    error,
+    refetch 
   } = useQuery({
     queryKey: ['serie-detalhes', id],
     queryFn: () => fetchSerieDetails(id || ''),
-    enabled: !!id
+    enabled: !!id,
+    retry: 2,
+    staleTime: 1000 * 60 * 5, // 5 minutos
   });
 
   useEffect(() => {
@@ -42,11 +45,20 @@ const DetalhesSerie = () => {
     }
   }, [id]);
 
+  // Selecionar o primeiro episódio quando a série é carregada ou a temporada muda
   useEffect(() => {
-    if (serie && serie.temporadas.length > 0 && serie.temporadas[0].episodios?.length) {
-      setEpisodioAtivo(serie.temporadas[0].episodios[0].id);
+    if (serie && serie.temporadas.length > 0) {
+      const temporadaAtual = serie.temporadas.find(t => t.numero === temporadaAtiva) || serie.temporadas[0];
+      
+      if (temporadaAtual && temporadaAtual.episodios?.length) {
+        console.log(`Selecionando primeiro episódio da temporada ${temporadaAtiva}: ${temporadaAtual.episodios[0].titulo}`);
+        setEpisodioAtivo(temporadaAtual.episodios[0].id);
+      } else {
+        console.log(`A temporada ${temporadaAtiva} não tem episódios`);
+        setEpisodioAtivo(null);
+      }
     }
-  }, [serie]);
+  }, [serie, temporadaAtiva]);
 
   const getTemporadaAtiva = () => {
     if (!serie || !serie.temporadas.length) return null;
@@ -60,14 +72,13 @@ const DetalhesSerie = () => {
   };
 
   const trocarTemporada = (numero: number) => {
+    console.log(`Trocando para temporada ${numero}`);
     setTemporadaAtiva(numero);
-    const temporada = serie?.temporadas.find(t => t.numero === numero);
-    if (temporada && temporada.episodios?.length) {
-      setEpisodioAtivo(temporada.episodios[0].id);
-    }
+    // episodioAtivo será definido pelo useEffect
   };
 
   const trocarEpisodio = (id: string) => {
+    console.log(`Trocando para episódio ID: ${id}`);
     setEpisodioAtivo(id);
     setActiveTab('assistir');
     setIsTrailer(false);
@@ -83,7 +94,7 @@ const DetalhesSerie = () => {
   }
 
   if (error || !serie) {
-    return <SerieError />;
+    return <SerieError onRetry={() => refetch()} />;
   }
 
   const episodioAtual = getEpisodioAtivo();
