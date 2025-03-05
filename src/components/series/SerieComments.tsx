@@ -81,6 +81,7 @@ const SerieComments = ({ serieId }: SerieCommentsProps) => {
           isAlternandoVisibilidade={alternarVisibilidade.isPending}
           isAlternandoCurtida={alternarCurtida.isPending}
           isRespondendo={adicionarComentario.isPending}
+          perfilUsuario={perfilUsuario}
         />
       </CardContent>
     </Card>

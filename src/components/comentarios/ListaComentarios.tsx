@@ -1,3 +1,4 @@
+
 import { MessageSquare, AlertCircle } from 'lucide-react';
 import { Alert } from "@/components/ui/alert";
 import { AlertDescription } from "@/components/ui/alert";
@@ -5,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from '@/components/ui/button';
 import { Comentario } from '@/types/comentario.types';
 import ComentarioCard from './ComentarioCard';
+import { PerfilUsuario } from '@/hooks/auth/types';
 
 interface ListaComentariosProps {
   comentarios: Comentario[];
@@ -31,6 +33,7 @@ interface ListaComentariosProps {
   isAlternandoVisibilidade: boolean;
   isAlternandoCurtida: boolean;
   isRespondendo: boolean;
+  perfilUsuario: PerfilUsuario | null;
 }
 
 const ListaComentarios = ({

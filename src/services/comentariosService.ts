@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Comentario, TipoItem } from '@/types/comentario.types';
 
@@ -61,17 +62,13 @@ export const buscarComentarios = async (
     throw new Error('Erro ao carregar respostas');
   }
 
-  // Agrupar respostas por comentário pai
-  const respostasPorPai: Record<string, Comentario[]> = {};
-  respostasData?.forEach(resposta => {
-    if (!respostasPorPai[resposta.comentario_pai_id]) {
-      respostasPorPai[resposta.comentario_pai_id] = [];
-    }
-    respostasPorPai[resposta.comentario_pai_id].push(resposta as Comentario);
-  });
-
+  // Coletar todos os IDs de usuários (de comentários e respostas)
+  const usuariosIds = [
+    ...comentariosData.map(c => c.usuario_id),
+    ...(respostasData || []).map(r => r.usuario_id)
+  ];
+  
   // Buscar informações dos perfis de usuários
-  const usuariosIds = comentariosData.map(c => c.usuario_id);
   const { data: perfisData, error: perfisError } = await supabase
     .from('perfis')
     .select('id, nome, avatar_url')
@@ -100,6 +97,24 @@ export const buscarComentarios = async (
   // Conjunto com IDs dos administradores
   const adminsIds = new Set((adminsData || []).map(admin => admin.user_id));
 
+  // Processar respostas com informações de usuário
+  const respostasProcessadas = (respostasData || []).map(r => ({
+    ...r,
+    usuario_nome: perfisPorUsuarioId[r.usuario_id]?.nome || 'Usuário',
+    usuario_avatar: perfisPorUsuarioId[r.usuario_id]?.avatar_url,
+    curtido_pelo_usuario: userId ? false : false, // Será atualizado abaixo
+    usuario_eh_admin: adminsIds.has(r.usuario_id)
+  }));
+
+  // Agrupar respostas por comentário pai
+  const respostasPorPai: Record<string, Comentario[]> = {};
+  respostasProcessadas.forEach(resposta => {
+    if (!respostasPorPai[resposta.comentario_pai_id]) {
+      respostasPorPai[resposta.comentario_pai_id] = [];
+    }
+    respostasPorPai[resposta.comentario_pai_id].push(resposta as Comentario);
+  });
+
   // Se não há usuário logado, retornamos os comentários sem verificar curtidas
   if (!userId) {
     return comentariosData.map(c => ({
@@ -107,7 +122,8 @@ export const buscarComentarios = async (
       usuario_nome: perfisPorUsuarioId[c.usuario_id]?.nome || 'Usuário',
       usuario_avatar: perfisPorUsuarioId[c.usuario_id]?.avatar_url,
       curtido_pelo_usuario: false,
-      usuario_eh_admin: adminsIds.has(c.usuario_id)
+      usuario_eh_admin: adminsIds.has(c.usuario_id),
+      respostas: respostasPorPai[c.id] || []
     })) as Comentario[];
   }
   
@@ -123,6 +139,13 @@ export const buscarComentarios = async (
   
   // Conjunto de IDs de comentários curtidos pelo usuário
   const comentariosCurtidos = new Set(curtidasData?.map(c => c.comentario_id) || []);
+  
+  // Atualizar as curtidas das respostas
+  if (respostasProcessadas.length > 0) {
+    respostasProcessadas.forEach(resposta => {
+      resposta.curtido_pelo_usuario = comentariosCurtidos.has(resposta.id);
+    });
+  }
   
   // Retornar comentários com informações adicionais e respostas
   return comentariosData.map(c => ({

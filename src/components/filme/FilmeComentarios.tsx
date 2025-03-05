@@ -68,6 +68,7 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
         isAlternandoVisibilidade={alternarVisibilidade.isPending}
         isAlternandoCurtida={alternarCurtida.isPending}
         isRespondendo={adicionarComentario.isPending}
+        perfilUsuario={perfilUsuario}
       />
     </div>
   );

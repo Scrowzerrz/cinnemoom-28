@@ -1,3 +1,4 @@
+
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Comentario } from '@/types/comentario.types';
 import FormularioResposta from "./FormularioResposta";
+import { PerfilUsuario } from '@/hooks/auth/types';
 
 interface ComentarioCardProps {
   comentario: Comentario;
@@ -33,6 +35,7 @@ interface ComentarioCardProps {
   isAlternandoCurtida: boolean;
   isRespondendo: boolean;
   comentarioRespondendoId: string | null;
+  perfilUsuario: PerfilUsuario | null;
 }
 
 const ComentarioCard = ({
@@ -57,6 +60,7 @@ const ComentarioCard = ({
   isAlternandoCurtida,
   isRespondendo,
   comentarioRespondendoId,
+  perfilUsuario,
 }: ComentarioCardProps) => {
   const getInitials = (name: string) => {
     return name
@@ -270,7 +274,7 @@ const ComentarioCard = ({
               {comentarioRespondendoId === comentario.id && (
                 <FormularioResposta
                   usuarioLogado={usuarioLogado}
-                  perfilUsuario={perfilUsuarioId}
+                  perfilUsuario={perfilUsuario}
                   onSubmit={(texto) => onSubmitResposta(comentario.id, texto)}
                   onCancel={() => onResponder(null)}
                   isSubmitting={isRespondendo}
@@ -303,6 +307,7 @@ const ComentarioCard = ({
                       isAlternandoCurtida={isAlternandoCurtida}
                       isRespondendo={isRespondendo}
                       comentarioRespondendoId={comentarioRespondendoId}
+                      perfilUsuario={perfilUsuario}
                     />
                   ))}
                 </div>
