@@ -73,8 +73,25 @@ export function SerieForm({
           return;
         }
         
+        // Criando um objeto com os tipos corretos exigidos pelo Supabase
+        // Garantindo que os campos obrigatórios (não opcionais) estejam presentes
         const serieToInsert = {
-          ...data,
+          titulo: data.titulo,
+          ano: data.ano,
+          poster_url: data.poster_url,
+          titulo_original: data.titulo_original || null,
+          duracao: data.duracao || null,
+          qualidade: data.qualidade || null,
+          avaliacao: data.avaliacao || null,
+          destaque: data.destaque || false,
+          descricao: data.descricao || null,
+          categoria: data.categoria || null,
+          diretor: data.diretor || null,
+          elenco: data.elenco || null,
+          produtor: data.produtor || null,
+          generos: data.generos || [],
+          trailer_url: data.trailer_url || null,
+          idioma: data.idioma || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           tipo: 'series'
@@ -84,7 +101,7 @@ export function SerieForm({
         
         const { data: serieData, error } = await supabase
           .from('series')
-          .insert([serieToInsert]) // Corrigido para inserir um array com o objeto
+          .insert([serieToInsert])
           .select('id')
           .single();
 

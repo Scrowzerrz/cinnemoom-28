@@ -2,9 +2,9 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Card, CardContent } from "@/components/ui/card";
 import { UseFormReturn } from "react-hook-form";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { SerieFormData } from "@/schemas/serieSchema";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface SerieDescricaoProps {
   form: UseFormReturn<SerieFormData>;
@@ -14,7 +14,7 @@ export function SerieDescricao({ form }: SerieDescricaoProps) {
   return (
     <Card className="bg-movieDarkBlue/40 border-gray-800">
       <CardContent className="pt-6">
-        <h3 className="text-lg font-medium mb-4">Detalhes da Série</h3>
+        <h3 className="text-lg font-medium mb-4">Descrição e Créditos</h3>
         
         <div className="space-y-4">
           <FormField
@@ -25,9 +25,10 @@ export function SerieDescricao({ form }: SerieDescricaoProps) {
                 <FormLabel>Sinopse</FormLabel>
                 <FormControl>
                   <Textarea 
-                    placeholder="Descreva a história da série..." 
-                    className="min-h-[120px] resize-y"
+                    placeholder="Descrição da série..." 
+                    className="min-h-28 resize-y"
                     {...field} 
+                    value={field.value || ''}
                   />
                 </FormControl>
                 <FormMessage />
@@ -35,7 +36,7 @@ export function SerieDescricao({ form }: SerieDescricaoProps) {
             )}
           />
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="diretor"
@@ -43,10 +44,7 @@ export function SerieDescricao({ form }: SerieDescricaoProps) {
                 <FormItem>
                   <FormLabel>Diretor(es)</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Nomes separados por vírgula" 
-                      {...field} 
-                    />
+                    <Input placeholder="Ex: Matt Duffer, Ross Duffer" {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -60,33 +58,27 @@ export function SerieDescricao({ form }: SerieDescricaoProps) {
                 <FormItem>
                   <FormLabel>Produtor(es)</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Nomes separados por vírgula" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="elenco"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Elenco Principal</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Nomes separados por vírgula" 
-                      {...field} 
-                    />
+                    <Input placeholder="Ex: Shawn Levy, Dan Cohen" {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
+          
+          <FormField
+            control={form.control}
+            name="elenco"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Elenco Principal</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: Millie Bobby Brown, Finn Wolfhard, Winona Ryder" {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
       </CardContent>
     </Card>
