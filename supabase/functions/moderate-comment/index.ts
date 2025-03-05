@@ -32,25 +32,36 @@ serve(async (req) => {
       );
     }
 
+    // Enhanced system prompt with clearer instructions
     const prompt = `
-      Analise o seguinte comentário e determine se ele viola as diretrizes da comunidade. 
-      O comentário não deve conter:
-      1. Discurso de ódio
-      2. Linguagem ofensiva ou agressiva
-      3. Assédio ou bullying
-      4. Conteúdo sexual explícito
-      5. Ameaças de violência
-      6. Desinformação perigosa
+      Você é um moderador de conteúdo rigoroso para uma plataforma de comentários de filmes e séries.
+      
+      Sua tarefa é analisar o seguinte comentário e determinar se ele viola nossas diretrizes da comunidade.
+      Seja RIGOROSO na sua análise. Se houver qualquer possibilidade do comentário violar as regras, você deve marcá-lo como inapropriado.
+      
+      Diretrizes da Comunidade - O comentário é inapropriado se contiver:
+      1. Discurso de ódio, palavras pejorativas ou linguagem discriminatória contra qualquer grupo
+      2. Palavrões, insultos, xingamentos ou linguagem ofensiva
+      3. Assédio, bullying ou comportamento persecutório
+      4. Conteúdo sexual explícito ou sugestivo 
+      5. Ameaças de violência, mesmo em tom de brincadeira
+      6. Desinformação perigosa sobre saúde, eleições ou outros temas sensíveis
+      7. Spam, links maliciosos ou conteúdo promocional não solicitado
+      8. Informações pessoais de terceiros
       
       Comentário: "${commentText}"
       
-      Responda APENAS com um JSON no seguinte formato:
+      IMPORTANTE: Responda APENAS com um JSON no seguinte formato:
       {
         "isAppropriate": true/false,
-        "reason": "Breve explicação se o comentário for inapropriado"
+        "reason": "Explicação detalhada se o comentário for inapropriado"
       }
+      
+      Se o comentário contiver qualquer violação das diretrizes, isAppropriate deve ser false e você deve explicar exatamente qual regra foi violada e por quê.
     `;
 
+    console.log("Sending comment for moderation:", commentText.substring(0, 50) + (commentText.length > 50 ? '...' : ''));
+    
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -85,20 +96,68 @@ serve(async (req) => {
     try {
       // Extract the content from the OpenRouter response
       const aiResponse = data.choices[0].message.content;
+      console.log("Raw AI response:", aiResponse);
       
-      // Parse the JSON response from the AI
-      moderationResult = JSON.parse(aiResponse);
+      try {
+        // Parse the JSON response from the AI
+        moderationResult = JSON.parse(aiResponse);
+        
+        // Validate the response structure
+        if (typeof moderationResult.isAppropriate !== 'boolean') {
+          console.error('Invalid AI response format - isAppropriate is not a boolean:', moderationResult);
+          // Force the comment to be moderated if the response is invalid
+          moderationResult = { 
+            isAppropriate: false, 
+            reason: "Erro de validação - comentário bloqueado preventivamente" 
+          };
+        }
+        
+        // If the AI is unsure or gives an unusual response, block the comment
+        if (!aiResponse.includes('"isAppropriate":') || !aiResponse.includes('"reason":')) {
+          console.warn('AI response missing required fields:', aiResponse);
+          moderationResult = { 
+            isAppropriate: false, 
+            reason: "Formato de resposta inválido - comentário bloqueado preventivamente" 
+          };
+        }
+        
+        // Extra validation for offensive content
+        const offensiveTerms = ['porra', 'caralho', 'merda', 'fdp', 'puta', 'viado', 'bicha', 'cú', 'cu', 'foda-se', 'fuck'];
+        const lowerCaseComment = commentText.toLowerCase();
+        const containsOffensiveTerm = offensiveTerms.some(term => lowerCaseComment.includes(term));
+        
+        if (containsOffensiveTerm && moderationResult.isAppropriate) {
+          console.warn('Manual override: AI missed offensive term in comment');
+          moderationResult = {
+            isAppropriate: false,
+            reason: "Linguagem ofensiva detectada. Comentários com palavrões não são permitidos."
+          };
+        }
+        
+      } catch (jsonError) {
+        console.error('Error parsing AI response JSON:', jsonError);
+        console.log('Raw AI response that failed parsing:', aiResponse);
+        
+        // Set a default response if parsing fails
+        moderationResult = { 
+          isAppropriate: false, 
+          reason: "Erro ao analisar o comentário - bloqueado preventivamente" 
+        };
+      }
+      
     } catch (error) {
-      console.error('Error parsing AI response:', error);
-      console.log('Raw AI response:', data);
+      console.error('General error processing AI response:', error);
+      console.log('Raw OpenAI API response:', data);
       
-      // Fallback: Assume the comment is appropriate if we can't parse the response
+      // Fallback: Block the comment if we can't parse the response
       moderationResult = { 
-        isAppropriate: true, 
-        reason: "Erro ao analisar a resposta da IA" 
+        isAppropriate: false, 
+        reason: "Erro ao processar o comentário - bloqueado preventivamente" 
       };
     }
 
+    console.log("Final moderation result:", JSON.stringify(moderationResult));
+    
     return new Response(
       JSON.stringify(moderationResult),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
