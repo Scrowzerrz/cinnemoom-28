@@ -101,52 +101,110 @@ serve(async (req) => {
         .replace(/```/g, '')     // Remove closing markdown tags
         .trim();                 // Trim whitespace
       
+      // FIRST VERIFICATION: Try to parse the JSON response
       try {
         // Parse the cleaned JSON response
         moderationResult = JSON.parse(cleanedResponse);
         
         // Validate the response structure
-        if (typeof moderationResult.isAppropriate !== 'boolean') {
-          console.error('Invalid AI response format - isAppropriate is not a boolean:', moderationResult);
-          // Force the comment to be moderated if the response is invalid
-          moderationResult = { 
-            isAppropriate: false, 
-            reason: "Erro de validação - comentário bloqueado preventivamente" 
-          };
-        }
-        
-        // Extra validation for offensive content
-        const offensiveTerms = ['porra', 'caralho', 'merda', 'fdp', 'puta', 'viado', 'bicha', 'cú', 'cu', 'foda-se', 'fuck'];
-        const lowerCaseComment = commentText.toLowerCase();
-        const containsOffensiveTerm = offensiveTerms.some(term => lowerCaseComment.includes(term));
-        
-        if (containsOffensiveTerm && moderationResult.isAppropriate) {
-          console.warn('Manual override: AI missed offensive term in comment');
-          moderationResult = {
-            isAppropriate: false,
-            reason: "Linguagem ofensiva detectada. Comentários com palavrões não são permitidos."
-          };
+        if (typeof moderationResult.isAppropriate !== 'boolean' || typeof moderationResult.reason !== 'string') {
+          console.error('Invalid AI response format - structure is incorrect:', moderationResult);
+          throw new Error('Invalid response structure');
         }
         
       } catch (jsonError) {
         console.error('Error parsing AI response JSON:', jsonError);
         console.log('Raw AI response that failed parsing:', aiResponse);
         
-        // If JSON parsing fails, perform a simple check for offensive terms
-        const lowerCaseComment = commentText.toLowerCase();
-        const offensiveTerms = ['porra', 'caralho', 'merda', 'fdp', 'puta', 'viado', 'bicha', 'cú', 'cu', 'foda-se', 'fuck'];
-        const containsOffensiveTerm = offensiveTerms.some(term => lowerCaseComment.includes(term));
-        
-        if (containsOffensiveTerm) {
+        // Try a second time with an even more aggressive clean-up
+        try {
+          const moreAggressiveCleanup = cleanedResponse
+            .replace(/['"]\s*isAppropriate\s*['"]\s*:\s*/g, '"isAppropriate":')
+            .replace(/['"]\s*reason\s*['"]\s*:\s*/g, '"reason":')
+            .replace(/\n/g, '')
+            .replace(/\r/g, '')
+            .replace(/\t/g, '')
+            .replace(/,\s*}/g, '}');
+          
+          moderationResult = JSON.parse(moreAggressiveCleanup);
+          
+          if (typeof moderationResult.isAppropriate !== 'boolean' || typeof moderationResult.reason !== 'string') {
+            throw new Error('Invalid response structure after aggressive cleanup');
+          }
+          
+          console.log('Successfully parsed response after aggressive cleanup');
+        } catch (secondError) {
+          console.error('Failed second attempt at parsing:', secondError);
+          
+          // Fall back to direct text pattern matching if JSON parsing still fails
+          if (cleanedResponse.includes('true') && !cleanedResponse.includes('false')) {
+            moderationResult = {
+              isAppropriate: true,
+              reason: ""
+            };
+          } else if (cleanedResponse.includes('false')) {
+            // Try to extract reason from the text
+            const reasonMatch = cleanedResponse.match(/"reason"\s*:\s*"([^"]+)"/);
+            const reason = reasonMatch ? reasonMatch[1] : "Conteúdo impróprio detectado";
+            
+            moderationResult = {
+              isAppropriate: false,
+              reason: reason
+            };
+          } else {
+            // Default to block if we can't determine
+            moderationResult = {
+              isAppropriate: false,
+              reason: "Não foi possível determinar se o conteúdo é apropriado"
+            };
+          }
+        }
+      }
+      
+      // SECOND VERIFICATION: Check for offensive terms directly
+      // This overrides the AI decision if we detect obviously offensive content
+      const lowerCaseComment = commentText.toLowerCase();
+      const offensiveTerms = [
+        'porra', 'caralho', 'merda', 'fdp', 'puta', 'viado', 'bicha', 
+        'cú', 'cu', 'foda-se', 'fuck', 'buceta', 'piroca', 'cacete', 
+        'pinto', 'retardado', 'corno', 'vagabunda', 'vadia', 'otário', 
+        'imbecil', 'babaca', 'pica'
+      ];
+      
+      const containsOffensiveTerm = offensiveTerms.some(term => {
+        // Exact term match or term with common separators
+        const termRegex = new RegExp(`\\b${term}\\b|\\b${term}[\\s\\.,!?]|[\\s\\.,!?]${term}\\b`);
+        return termRegex.test(lowerCaseComment);
+      });
+      
+      if (containsOffensiveTerm && moderationResult.isAppropriate) {
+        console.warn('Manual override: AI missed offensive term in comment');
+        moderationResult = {
+          isAppropriate: false,
+          reason: "Linguagem ofensiva detectada. Comentários com palavrões não são permitidos."
+        };
+      }
+      
+      // Third verification: Content length and character checks
+      if (moderationResult.isAppropriate) {
+        // Check for repetitive characters (potential spam)
+        const repetitiveCharsRegex = /([a-zA-Z0-9])\1{4,}/;
+        if (repetitiveCharsRegex.test(commentText)) {
+          console.warn('Repetitive characters detected - potential spam');
           moderationResult = {
             isAppropriate: false,
-            reason: "Linguagem ofensiva detectada. Comentários com palavrões não são permitidos."
+            reason: "Comentário com caracteres repetitivos detectados. Possível spam."
           };
-        } else {
-          // Default response if we can't parse the AI's response
-          moderationResult = { 
-            isAppropriate: false, 
-            reason: "Erro ao analisar o comentário - bloqueado preventivamente" 
+        }
+        
+        // Check for excessive capitalization (shouting)
+        const words = commentText.split(/\s+/);
+        const capsWords = words.filter(word => word.length > 2 && word === word.toUpperCase());
+        if (words.length >= 5 && capsWords.length / words.length > 0.5) {
+          console.warn('Excessive capitalization detected');
+          moderationResult = {
+            isAppropriate: false,
+            reason: "Uso excessivo de letras maiúsculas. Evite 'gritar' nos comentários."
           };
         }
       }
@@ -155,11 +213,27 @@ serve(async (req) => {
       console.error('General error processing AI response:', error);
       console.log('Raw OpenAI API response:', data);
       
-      // Fallback: Block the comment if we can't parse the response
-      moderationResult = { 
-        isAppropriate: false, 
-        reason: "Erro ao processar o comentário - bloqueado preventivamente" 
-      };
+      // Fallback: Perform our own content check if AI processing fails completely
+      const lowerCaseComment = commentText.toLowerCase();
+      const offensiveTerms = [
+        'porra', 'caralho', 'merda', 'fdp', 'puta', 'viado', 'bicha', 
+        'cú', 'cu', 'foda-se', 'fuck', 'buceta', 'piroca', 'cacete'
+      ];
+      
+      const containsOffensiveTerm = offensiveTerms.some(term => lowerCaseComment.includes(term));
+      
+      if (containsOffensiveTerm) {
+        moderationResult = {
+          isAppropriate: false,
+          reason: "Linguagem ofensiva detectada. Comentários com palavrões não são permitidos."
+        };
+      } else {
+        // Default fallback response
+        moderationResult = { 
+          isAppropriate: false, 
+          reason: "Erro ao processar o comentário - bloqueado preventivamente" 
+        };
+      }
     }
 
     console.log("Final moderation result:", JSON.stringify(moderationResult));
