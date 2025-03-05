@@ -121,7 +121,7 @@ export const trancarComentario = async (
     .rpc('trancar_comentario', {
       comentario_id: comentarioId,
       trancar: true,
-      usuario_admin_id: userId  // Alterado para o novo nome do parâmetro
+      usuario_admin_id: userId  // Corrigido para usar o novo nome do parâmetro
     });
     
   if (error) {
@@ -140,7 +140,7 @@ export const destrancarComentario = async (
     .rpc('trancar_comentario', {
       comentario_id: comentarioId,
       trancar: false,
-      usuario_admin_id: userId  // Alterado para o novo nome do parâmetro
+      usuario_admin_id: userId  // Corrigido para usar o novo nome do parâmetro
     });
     
   if (error) {
