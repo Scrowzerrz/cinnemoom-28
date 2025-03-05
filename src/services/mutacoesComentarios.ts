@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { TipoItem } from '@/types/comentario.types';
 
@@ -7,8 +8,8 @@ export const adicionarNovoComentario = async (
   itemId: string,
   itemTipo: TipoItem,
   comentarioPaiId?: string | null
-) => {
-  const { data, error } = await supabase
+): Promise<void> => {
+  const { error } = await supabase
     .from('comentarios')
     .insert({
       usuario_id: userId,
@@ -16,16 +17,12 @@ export const adicionarNovoComentario = async (
       item_tipo: itemTipo,
       texto,
       comentario_pai_id: comentarioPaiId
-    })
-    .select('*')
-    .single();
+    });
   
   if (error) {
     console.error('Erro ao adicionar comentário:', error);
     throw new Error('Erro ao adicionar comentário');
   }
-  
-  return data;
 };
 
 export const editarComentarioExistente = async (

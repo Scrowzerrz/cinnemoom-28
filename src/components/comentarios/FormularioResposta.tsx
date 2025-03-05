@@ -4,13 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Send, RefreshCw, X } from 'lucide-react';
+import { PerfilUsuario } from '@/hooks/auth/types';
 
 interface FormularioRespostaProps {
   usuarioLogado: boolean;
-  perfilUsuario: {
-    nome?: string | null;
-    avatar_url?: string | null;
-  } | null;
+  perfilUsuario: PerfilUsuario | null;
   onSubmit: (texto: string) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;

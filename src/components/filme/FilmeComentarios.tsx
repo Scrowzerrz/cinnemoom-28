@@ -57,7 +57,9 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
         onAlternarVisibilidade={(id, visivel) => alternarVisibilidade.mutate({ id, visivel })}
         comentarioRespondendoId={comentarioRespondendoId}
         onResponder={iniciarResposta}
-        onSubmitResposta={(comentarioPaiId, texto) => adicionarComentario.mutateAsync(texto, comentarioPaiId)}
+        onSubmitResposta={async (comentarioPaiId, texto) => {
+          await adicionarComentario.mutateAsync(texto, comentarioPaiId);
+        }}
         isEditando={editarComentario.isPending}
         isExcluindo={excluirComentario.isPending}
         isAlternandoVisibilidade={alternarVisibilidade.isPending}

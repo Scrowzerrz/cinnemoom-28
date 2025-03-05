@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -37,11 +38,11 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
 
   // Adicionar comentário (agora com suporte a respostas)
   const adicionarComentario = useMutation({
-    mutationFn: async (texto: string, comentarioPaiId?: string) => {
+    mutationFn: async (texto: string, comentarioPaiId?: string | null) => {
       if (!session?.user) {
         throw new Error('Você precisa estar logado para comentar');
       }
-      return adicionarNovoComentario(texto, session.user.id, itemId, itemTipo, comentarioPaiId);
+      await adicionarNovoComentario(texto, session.user.id, itemId, itemTipo, comentarioPaiId);
     },
     onSuccess: () => {
       toast.success('Comentário adicionado com sucesso!');
