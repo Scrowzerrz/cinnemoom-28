@@ -10,7 +10,18 @@ export const buscarComentarios = async (
   // Consulta principal para buscar comentários
   let query = supabase
     .from('comentarios')
-    .select(`*`)
+    .select(`
+      id,
+      usuario_id,
+      item_id,
+      item_tipo,
+      texto,
+      data_criacao,
+      data_atualizacao,
+      visivel,
+      curtidas,
+      comentario_pai_id
+    `)
     .eq('item_id', itemId)
     .eq('item_tipo', itemTipo)
     .is('comentario_pai_id', null) // Busca apenas comentários principais
@@ -30,22 +41,34 @@ export const buscarComentarios = async (
   // Buscar respostas para os comentários
   const { data: respostasData, error: respostasError } = await supabase
     .from('comentarios')
-    .select(`*`)
+    .select(`
+      id,
+      usuario_id,
+      item_id,
+      item_tipo,
+      texto,
+      data_criacao,
+      data_atualizacao,
+      visivel,
+      curtidas,
+      comentario_pai_id
+    `)
     .in('comentario_pai_id', comentariosData.map(c => c.id))
     .order('data_criacao', { ascending: true });
 
   if (respostasError) {
     console.error('Erro ao buscar respostas:', respostasError);
+    throw new Error('Erro ao carregar respostas');
   }
 
   // Agrupar respostas por comentário pai
-  const respostasPorPai = (respostasData || []).reduce((acc, resposta) => {
-    if (!acc[resposta.comentario_pai_id]) {
-      acc[resposta.comentario_pai_id] = [];
+  const respostasPorPai: Record<string, Comentario[]> = {};
+  respostasData?.forEach(resposta => {
+    if (!respostasPorPai[resposta.comentario_pai_id]) {
+      respostasPorPai[resposta.comentario_pai_id] = [];
     }
-    acc[resposta.comentario_pai_id].push(resposta);
-    return acc;
-  }, {} as Record<string, Comentario[]>);
+    respostasPorPai[resposta.comentario_pai_id].push(resposta as Comentario);
+  });
 
   // Buscar informações dos perfis de usuários
   const usuariosIds = comentariosData.map(c => c.usuario_id);

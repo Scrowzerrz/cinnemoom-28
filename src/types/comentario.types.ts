@@ -1,4 +1,3 @@
-
 export interface Comentario {
   id: string;
   usuario_id: string;
@@ -18,3 +17,4 @@ export interface Comentario {
 }
 
 export type TipoItem = 'filme' | 'serie';
+

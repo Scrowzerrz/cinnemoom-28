@@ -25,7 +25,9 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
     cancelarEdicao,
     usuarioLogado,
     perfilUsuario,
-    ehAdmin
+    ehAdmin,
+    comentarioRespondendoId,
+    iniciarResposta
   } = useComentarios(filmeId, 'filme');
 
   return (
@@ -53,10 +55,14 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
         onCurtir={(id, curtido) => alternarCurtida.mutate({ id, curtido })}
         onExcluir={(id) => excluirComentario.mutate(id)}
         onAlternarVisibilidade={(id, visivel) => alternarVisibilidade.mutate({ id, visivel })}
+        comentarioRespondendoId={comentarioRespondendoId}
+        onResponder={iniciarResposta}
+        onSubmitResposta={(comentarioPaiId, texto) => adicionarComentario.mutateAsync(texto, comentarioPaiId)}
         isEditando={editarComentario.isPending}
         isExcluindo={excluirComentario.isPending}
         isAlternandoVisibilidade={alternarVisibilidade.isPending}
         isAlternandoCurtida={alternarCurtida.isPending}
+        isRespondendo={adicionarComentario.isPending}
       />
     </div>
   );

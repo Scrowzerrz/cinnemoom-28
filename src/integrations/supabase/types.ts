@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       comentarios: {
         Row: {
+          comentario_pai_id: string | null
           curtidas: number
           data_atualizacao: string
           data_criacao: string
@@ -22,6 +23,7 @@ export type Database = {
           visivel: boolean
         }
         Insert: {
+          comentario_pai_id?: string | null
           curtidas?: number
           data_atualizacao?: string
           data_criacao?: string
@@ -33,6 +35,7 @@ export type Database = {
           visivel?: boolean
         }
         Update: {
+          comentario_pai_id?: string | null
           curtidas?: number
           data_atualizacao?: string
           data_criacao?: string
@@ -43,7 +46,15 @@ export type Database = {
           usuario_id?: string
           visivel?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "comentarios_comentario_pai_id_fkey"
+            columns: ["comentario_pai_id"]
+            isOneToOne: false
+            referencedRelation: "comentarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       curtidas_comentarios: {
         Row: {

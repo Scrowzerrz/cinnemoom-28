@@ -270,7 +270,7 @@ const ComentarioCard = ({
               {comentarioRespondendoId === comentario.id && (
                 <FormularioResposta
                   usuarioLogado={usuarioLogado}
-                  perfilUsuario={perfilUsuario}
+                  perfilUsuario={perfilUsuarioId}
                   onSubmit={(texto) => onSubmitResposta(comentario.id, texto)}
                   onCancel={() => onResponder(null)}
                   isSubmitting={isRespondendo}
