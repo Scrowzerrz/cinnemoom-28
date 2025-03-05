@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -13,7 +12,6 @@ import { useFavoritos } from '@/hooks/useFavoritos';
 import { useAuth } from '@/hooks/useAuth';
 import { MovieResponse } from '@/services/types/movieTypes';
 
-// Importação dos componentes refatorados
 import FilmeHeader from '@/components/filme/FilmeHeader';
 import FilmeAssistir from '@/components/filme/FilmeAssistir';
 import FilmeComentarios from '@/components/filme/FilmeComentarios';
@@ -148,7 +146,7 @@ const DetalhesFilme = () => {
             </TabsContent>
             
             <TabsContent value="comentarios" className="mt-6 focus-visible:outline-none">
-              <FilmeComentarios />
+              <FilmeComentarios filmeId={filme.id} />
               
               <VejaTambemSection 
                 filmes={filmesSugestoes} 

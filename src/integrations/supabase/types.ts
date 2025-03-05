@@ -9,6 +9,71 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      comentarios: {
+        Row: {
+          curtidas: number
+          data_atualizacao: string
+          data_criacao: string
+          id: string
+          item_id: string
+          item_tipo: string
+          texto: string
+          usuario_id: string
+          visivel: boolean
+        }
+        Insert: {
+          curtidas?: number
+          data_atualizacao?: string
+          data_criacao?: string
+          id?: string
+          item_id: string
+          item_tipo: string
+          texto: string
+          usuario_id: string
+          visivel?: boolean
+        }
+        Update: {
+          curtidas?: number
+          data_atualizacao?: string
+          data_criacao?: string
+          id?: string
+          item_id?: string
+          item_tipo?: string
+          texto?: string
+          usuario_id?: string
+          visivel?: boolean
+        }
+        Relationships: []
+      }
+      curtidas_comentarios: {
+        Row: {
+          comentario_id: string
+          data_criacao: string
+          id: string
+          usuario_id: string
+        }
+        Insert: {
+          comentario_id: string
+          data_criacao?: string
+          id?: string
+          usuario_id: string
+        }
+        Update: {
+          comentario_id?: string
+          data_criacao?: string
+          id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curtidas_comentarios_comentario_id_fkey"
+            columns: ["comentario_id"]
+            isOneToOne: false
+            referencedRelation: "comentarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       episodios: {
         Row: {
           created_at: string | null
