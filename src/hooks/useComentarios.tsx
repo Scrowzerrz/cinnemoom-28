@@ -45,13 +45,13 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
         .from('comentarios')
         .select(`
           *,
-          perfis:usuario_id (
+          perfis (
             nome,
             avatar_url
           )
         `)
         .eq('item_id', itemId)
-        .eq('item_tipo', itemTipo)
+        .eq('item_tipo', itemTipo as string)
         .order('data_criacao', { ascending: false });
       
       // Caso não seja admin, mostrar apenas comentários visíveis
@@ -73,7 +73,7 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
           usuario_nome: c.perfis?.nome || 'Usuário',
           usuario_avatar: c.perfis?.avatar_url,
           curtido_pelo_usuario: false
-        }));
+        })) as Comentario[];
       }
       
       // Verificar quais comentários o usuário atual curtiu
@@ -98,7 +98,7 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
         usuario_nome: c.perfis?.nome || 'Usuário',
         usuario_avatar: c.perfis?.avatar_url,
         curtido_pelo_usuario: comentariosCurtidos.has(c.id)
-      }));
+      })) as Comentario[];
     },
     enabled: !!itemId
   });
