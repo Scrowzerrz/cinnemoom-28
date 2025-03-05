@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -18,7 +17,6 @@ import {
 
 export { type Comentario };
 
-// Define a type for the adicionarComentario parameters
 interface AdicionarComentarioParams {
   texto: string;
   comentarioPaiId?: string | null;
@@ -32,7 +30,6 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
   const [textoEdicao, setTextoEdicao] = useState<string>('');
   const [comentarioRespondendoId, setComentarioRespondendoId] = useState<string | null>(null);
 
-  // Buscar comentários
   const { 
     data: comentarios = [], 
     isLoading, 
@@ -44,7 +41,6 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     enabled: !!itemId
   });
 
-  // Adicionar comentário (agora com suporte a respostas)
   const adicionarComentario = useMutation({
     mutationFn: async (params: AdicionarComentarioParams) => {
       if (!session?.user) {
@@ -64,11 +60,19 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
       setComentarioRespondendoId(null);
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Erro ao adicionar comentário');
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao adicionar comentário';
+      
+      if (errorMessage.startsWith('Comentário bloqueado:')) {
+        const reason = errorMessage.replace('Comentário bloqueado:', '').trim();
+        toast.error(`Comentário bloqueado pela moderação: ${reason}`, {
+          duration: 5000
+        });
+      } else {
+        toast.error(errorMessage);
+      }
     }
   });
 
-  // Editar comentário
   const editarComentario = useMutation({
     mutationFn: async ({ id, texto }: { id: string; texto: string }) => {
       if (!session?.user) {
@@ -87,7 +91,6 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     }
   });
 
-  // Excluir comentário
   const excluirComentario = useMutation({
     mutationFn: async (id: string) => {
       if (!session?.user) {
@@ -104,7 +107,6 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     }
   });
 
-  // Alternar visibilidade
   const alternarVisibilidade = useMutation({
     mutationFn: async ({ id, visivel }: { id: string; visivel: boolean }) => {
       if (!session?.user || !ehAdmin) {
@@ -122,7 +124,6 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     }
   });
 
-  // Curtir ou remover curtida
   const alternarCurtida = useMutation({
     mutationFn: async ({ id, curtido }: { id: string; curtido: boolean }) => {
       if (!session?.user) {
@@ -153,7 +154,6 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     }
   });
 
-  // Trancar comentário
   const trancar = useMutation({
     mutationFn: async (id: string) => {
       if (!session?.user || !ehAdmin) {
@@ -170,7 +170,6 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     }
   });
 
-  // Destrancar comentário
   const destrancar = useMutation({
     mutationFn: async (id: string) => {
       if (!session?.user || !ehAdmin) {

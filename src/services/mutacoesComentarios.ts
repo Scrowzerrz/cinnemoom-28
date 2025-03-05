@@ -9,18 +9,49 @@ export const adicionarNovoComentario = async (
   itemTipo: TipoItem,
   comentarioPaiId?: string | null
 ): Promise<void> => {
-  const { error } = await supabase
-    .from('comentarios')
-    .insert({
-      usuario_id: userId,
-      item_id: itemId,
-      item_tipo: itemTipo,
-      texto,
-      comentario_pai_id: comentarioPaiId
-    });
-  
-  if (error) {
-    console.error('Erro ao adicionar comentário:', error);
+  // Primeiro, verificar o comentário com a IA moderadora
+  try {
+    const { data: moderationData, error: moderationError } = await supabase.functions.invoke(
+      'moderate-comment', 
+      { body: { commentText: texto } }
+    );
+    
+    if (moderationError) {
+      console.error('Erro ao moderar comentário:', moderationError);
+      // Continua permitindo o comentário, mas registra o erro
+    }
+    
+    // Se o comentário for considerado inapropriado, adiciona o motivo como metadados
+    // e marca como não visível para moderação manual
+    const visivel = moderationData?.isAppropriate !== false;
+    const metadata = !visivel ? { moderationReason: moderationData.reason } : null;
+
+    const { error } = await supabase
+      .from('comentarios')
+      .insert({
+        usuario_id: userId,
+        item_id: itemId,
+        item_tipo: itemTipo,
+        texto,
+        comentario_pai_id: comentarioPaiId,
+        visivel,
+        metadata
+      });
+    
+    if (error) {
+      console.error('Erro ao adicionar comentário:', error);
+      throw new Error('Erro ao adicionar comentário');
+    }
+
+    // Se o comentário foi automáticamente bloqueado, retornar essa informação
+    if (!visivel) {
+      throw new Error(`Comentário bloqueado: ${moderationData.reason}`);
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Comentário bloqueado:')) {
+      throw error;
+    }
+    console.error('Erro na moderação ou adição de comentário:', error);
     throw new Error('Erro ao adicionar comentário');
   }
 };

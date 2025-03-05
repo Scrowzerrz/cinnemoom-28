@@ -18,6 +18,9 @@ export interface Comentario {
   trancado: boolean;
   trancado_por?: string;
   data_trancamento?: string;
+  metadata?: {
+    moderationReason?: string;
+  };
 }
 
 export type TipoItem = 'filme' | 'serie';

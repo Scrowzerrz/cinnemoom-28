@@ -71,6 +71,7 @@ const ComentarioCard = ({
   const isReplying = comentarioRespondendoId === comentario.id;
   const isAuthor = comentario.usuario_id === perfilUsuarioId;
   const isParentComment = !comentario.comentario_pai_id;
+  const moderationReason = comentario.metadata?.moderationReason;
 
   return (
     <div 
@@ -80,7 +81,7 @@ const ComentarioCard = ({
         ${comentario.usuario_eh_admin ? 'border-blue-500/30 bg-blue-950/10' : ''} 
         rounded-lg p-4 transition-all`}
     >
-      {!comentario.visivel && ehAdmin && <VisibilityWarning />}
+      {!comentario.visivel && ehAdmin && <VisibilityWarning moderationReason={moderationReason} />}
       {comentario.trancado && <TrancadoWarning dataTrancamento={comentario.data_trancamento} />}
       
       <div className="flex items-start gap-3">
