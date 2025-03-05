@@ -1,3 +1,4 @@
+
 export interface Comentario {
   id: string;
   usuario_id: string;
@@ -14,7 +15,9 @@ export interface Comentario {
   usuario_eh_admin?: boolean;
   comentario_pai_id?: string | null;
   respostas?: Comentario[];
+  trancado: boolean;
+  trancado_por?: string;
+  data_trancamento?: string;
 }
 
 export type TipoItem = 'filme' | 'serie';
-

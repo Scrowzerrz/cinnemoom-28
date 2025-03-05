@@ -112,3 +112,41 @@ export const alternarCurtidaComentario = async (
   
   return { id: comentarioId, novoEstado: !curtido };
 };
+
+export const trancarComentario = async (
+  comentarioId: string, 
+  userId: string
+) => {
+  const { error } = await supabase
+    .rpc('trancar_comentario', {
+      comentario_id: comentarioId,
+      trancar: true,
+      usuario_id: userId
+    });
+    
+  if (error) {
+    console.error('Erro ao trancar comentário:', error);
+    throw new Error('Erro ao trancar comentário');
+  }
+  
+  return comentarioId;
+};
+
+export const destrancarComentario = async (
+  comentarioId: string, 
+  userId: string
+) => {
+  const { error } = await supabase
+    .rpc('trancar_comentario', {
+      comentario_id: comentarioId,
+      trancar: false,
+      usuario_id: userId
+    });
+    
+  if (error) {
+    console.error('Erro ao destrancar comentário:', error);
+    throw new Error('Erro ao destrancar comentário');
+  }
+  
+  return comentarioId;
+};

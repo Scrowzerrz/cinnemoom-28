@@ -20,6 +20,8 @@ const SerieComments = ({ serieId }: SerieCommentsProps) => {
     excluirComentario,
     alternarVisibilidade,
     alternarCurtida,
+    trancar,
+    destrancar,
     editandoId,
     textoEdicao,
     setTextoEdicao,
@@ -68,6 +70,8 @@ const SerieComments = ({ serieId }: SerieCommentsProps) => {
           onCurtir={(id, curtido) => alternarCurtida.mutate({ id, curtido })}
           onExcluir={(id) => excluirComentario.mutate(id)}
           onAlternarVisibilidade={(id, visivel) => alternarVisibilidade.mutate({ id, visivel })}
+          onTrancar={(id) => trancar.mutate(id)}
+          onDestrancar={(id) => destrancar.mutate(id)}
           comentarioRespondendoId={comentarioRespondendoId}
           onResponder={iniciarResposta}
           onSubmitResposta={async (comentarioPaiId, texto) => {
@@ -80,6 +84,8 @@ const SerieComments = ({ serieId }: SerieCommentsProps) => {
           isExcluindo={excluirComentario.isPending}
           isAlternandoVisibilidade={alternarVisibilidade.isPending}
           isAlternandoCurtida={alternarCurtida.isPending}
+          isTrancando={trancar.isPending}
+          isDestrancando={destrancar.isPending}
           isRespondendo={adicionarComentario.isPending}
           perfilUsuario={perfilUsuario}
         />

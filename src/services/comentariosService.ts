@@ -21,7 +21,10 @@ export const buscarComentarios = async (
       data_atualizacao,
       visivel,
       curtidas,
-      comentario_pai_id
+      comentario_pai_id,
+      trancado,
+      trancado_por,
+      data_trancamento
     `)
     .eq('item_id', itemId)
     .eq('item_tipo', itemTipo)
@@ -52,7 +55,10 @@ export const buscarComentarios = async (
       data_atualizacao,
       visivel,
       curtidas,
-      comentario_pai_id
+      comentario_pai_id,
+      trancado,
+      trancado_por,
+      data_trancamento
     `)
     .in('comentario_pai_id', comentariosData.map(c => c.id))
     .order('data_criacao', { ascending: true });

@@ -15,10 +15,13 @@ export type Database = {
           curtidas: number
           data_atualizacao: string
           data_criacao: string
+          data_trancamento: string | null
           id: string
           item_id: string
           item_tipo: string
           texto: string
+          trancado: boolean
+          trancado_por: string | null
           usuario_id: string
           visivel: boolean
         }
@@ -27,10 +30,13 @@ export type Database = {
           curtidas?: number
           data_atualizacao?: string
           data_criacao?: string
+          data_trancamento?: string | null
           id?: string
           item_id: string
           item_tipo: string
           texto: string
+          trancado?: boolean
+          trancado_por?: string | null
           usuario_id: string
           visivel?: boolean
         }
@@ -39,10 +45,13 @@ export type Database = {
           curtidas?: number
           data_atualizacao?: string
           data_criacao?: string
+          data_trancamento?: string | null
           id?: string
           item_id?: string
           item_tipo?: string
           texto?: string
+          trancado?: boolean
+          trancado_por?: string | null
           usuario_id?: string
           visivel?: boolean
         }
@@ -468,6 +477,14 @@ export type Database = {
           tipo_papel_param: Database["public"]["Enums"]["tipo_papel"]
         }
         Returns: boolean
+      }
+      trancar_comentario: {
+        Args: {
+          comentario_id: string
+          trancar: boolean
+          usuario_id: string
+        }
+        Returns: undefined
       }
       usuario_atual_eh_admin: {
         Args: Record<PropertyKey, never>

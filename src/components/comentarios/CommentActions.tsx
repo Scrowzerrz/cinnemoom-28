@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { 
   Heart, Trash, Reply, Pen, Eye, EyeOff,
-  RefreshCw 
+  RefreshCw, Lock, Unlock
 } from 'lucide-react';
 
 interface CommentActionsProps {
@@ -17,10 +17,15 @@ interface CommentActionsProps {
   onExcluir: () => void;
   onCurtir: () => void;
   onAlternarVisibilidade: () => void;
+  onTrancar?: () => void;
+  onDestrancar?: () => void;
   visivel: boolean;
+  trancado: boolean;
   isExcluindo: boolean;
   isAlternandoVisibilidade: boolean;
   isAlternandoCurtida: boolean;
+  isTrancando?: boolean;
+  isDestrancando?: boolean;
 }
 
 const CommentActions = ({
@@ -35,10 +40,15 @@ const CommentActions = ({
   onExcluir,
   onCurtir,
   onAlternarVisibilidade,
+  onTrancar,
+  onDestrancar,
   visivel,
+  trancado,
   isExcluindo,
   isAlternandoVisibilidade,
-  isAlternandoCurtida
+  isAlternandoCurtida,
+  isTrancando,
+  isDestrancando
 }: CommentActionsProps) => {
   return (
     <div className="flex flex-wrap items-center gap-4 mt-3">
@@ -57,7 +67,7 @@ const CommentActions = ({
         {curtidas}
       </button>
       
-      {usuarioLogado && ehComentarioPai && (
+      {usuarioLogado && ehComentarioPai && !trancado && (
         <button 
           onClick={onResponder}
           className="text-gray-500 text-sm hover:text-gray-300 flex items-center gap-1.5"
@@ -67,7 +77,7 @@ const CommentActions = ({
         </button>
       )}
       
-      {ehAutor && (
+      {ehAutor && !trancado && (
         <>
           <button 
             onClick={onIniciarEdicao}
@@ -93,7 +103,7 @@ const CommentActions = ({
         </>
       )}
       
-      {ehAdmin && !ehAutor && (
+      {ehAdmin && (
         <>
           <button 
             onClick={onAlternarVisibilidade}
@@ -121,24 +131,66 @@ const CommentActions = ({
               </>
             )}
           </button>
+
+          {!trancado && onTrancar && (
+            <button
+              onClick={onTrancar}
+              className="text-blue-400 text-sm hover:text-blue-300"
+              disabled={isTrancando}
+            >
+              {isTrancando ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin inline-block mr-1" />
+                  Trancando...
+                </>
+              ) : (
+                <>
+                  <Lock className="h-4 w-4 inline-block mr-1" />
+                  Trancar
+                </>
+              )}
+            </button>
+          )}
+
+          {trancado && onDestrancar && (
+            <button
+              onClick={onDestrancar}
+              className="text-purple-400 text-sm hover:text-purple-300"
+              disabled={isDestrancando}
+            >
+              {isDestrancando ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin inline-block mr-1" />
+                  Destrancando...
+                </>
+              ) : (
+                <>
+                  <Unlock className="h-4 w-4 inline-block mr-1" />
+                  Destrancar
+                </>
+              )}
+            </button>
+          )}
           
-          <button 
-            onClick={onExcluir}
-            className="text-gray-500 text-sm hover:text-red-400"
-            disabled={isExcluindo}
-          >
-            {isExcluindo ? (
-              <>
-                <RefreshCw className="h-4 w-4 animate-spin inline-block mr-1" />
-                Excluindo...
-              </>
-            ) : (
-              <>
-                <Trash className="h-4 w-4 inline-block mr-1" />
-                Excluir
-              </>
-            )}
-          </button>
+          {!ehAutor && (
+            <button 
+              onClick={onExcluir}
+              className="text-gray-500 text-sm hover:text-red-400"
+              disabled={isExcluindo}
+            >
+              {isExcluindo ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin inline-block mr-1" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash className="h-4 w-4 inline-block mr-1" />
+                  Excluir
+                </>
+              )}
+            </button>
+          )}
         </>
       )}
     </div>

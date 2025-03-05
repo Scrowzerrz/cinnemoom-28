@@ -18,6 +18,8 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
     excluirComentario,
     alternarVisibilidade,
     alternarCurtida,
+    trancar,
+    destrancar,
     editandoId,
     textoEdicao,
     setTextoEdicao,
@@ -55,6 +57,8 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
         onCurtir={(id, curtido) => alternarCurtida.mutate({ id, curtido })}
         onExcluir={(id) => excluirComentario.mutate(id)}
         onAlternarVisibilidade={(id, visivel) => alternarVisibilidade.mutate({ id, visivel })}
+        onTrancar={(id) => trancar.mutate(id)}
+        onDestrancar={(id) => destrancar.mutate(id)}
         comentarioRespondendoId={comentarioRespondendoId}
         onResponder={iniciarResposta}
         onSubmitResposta={async (comentarioPaiId, texto) => {
@@ -67,6 +71,8 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
         isExcluindo={excluirComentario.isPending}
         isAlternandoVisibilidade={alternarVisibilidade.isPending}
         isAlternandoCurtida={alternarCurtida.isPending}
+        isTrancando={trancar.isPending}
+        isDestrancando={destrancar.isPending}
         isRespondendo={adicionarComentario.isPending}
         perfilUsuario={perfilUsuario}
       />

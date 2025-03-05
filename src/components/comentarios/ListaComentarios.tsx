@@ -25,6 +25,8 @@ interface ListaComentariosProps {
   onCurtir: (id: string, curtido: boolean) => void;
   onExcluir: (id: string) => void;
   onAlternarVisibilidade: (id: string, visivel: boolean) => void;
+  onTrancar?: (id: string) => void;
+  onDestrancar?: (id: string) => void;
   comentarioRespondendoId: string | null;
   onResponder: (comentario: Comentario) => void;
   onSubmitResposta: (comentarioPaiId: string, texto: string) => Promise<void>;
@@ -32,6 +34,8 @@ interface ListaComentariosProps {
   isExcluindo: boolean;
   isAlternandoVisibilidade: boolean;
   isAlternandoCurtida: boolean;
+  isTrancando?: boolean;
+  isDestrancando?: boolean;
   isRespondendo: boolean;
   perfilUsuario: PerfilUsuario | null;
 }

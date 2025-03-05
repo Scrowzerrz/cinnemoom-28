@@ -7,6 +7,7 @@ import CommentActions from './CommentActions';
 import CommentEditForm from './CommentEditForm';
 import FormularioResposta from "./FormularioResposta";
 import VisibilityWarning from './VisibilityWarning';
+import TrancadoWarning from './TrancadoWarning';
 import { getInitials } from './utils/commentUtils';
 
 interface ComentarioCardProps {
@@ -23,12 +24,16 @@ interface ComentarioCardProps {
   onCurtir: (id: string, curtido: boolean) => void;
   onExcluir: (id: string) => void;
   onAlternarVisibilidade: (id: string, visivel: boolean) => void;
+  onTrancar?: (id: string) => void;
+  onDestrancar?: (id: string) => void;
   onResponder: (comentario: Comentario) => void;
   onSubmitResposta: (comentarioPaiId: string, texto: string) => Promise<void>;
   isEditando: boolean;
   isExcluindo: boolean;
   isAlternandoVisibilidade: boolean;
   isAlternandoCurtida: boolean;
+  isTrancando?: boolean;
+  isDestrancando?: boolean;
   isRespondendo: boolean;
   comentarioRespondendoId: string | null;
   perfilUsuario: PerfilUsuario | null;
@@ -48,12 +53,16 @@ const ComentarioCard = ({
   onCurtir,
   onExcluir,
   onAlternarVisibilidade,
+  onTrancar,
+  onDestrancar,
   onResponder,
   onSubmitResposta,
   isEditando,
   isExcluindo,
   isAlternandoVisibilidade,
   isAlternandoCurtida,
+  isTrancando,
+  isDestrancando,
   isRespondendo,
   comentarioRespondendoId,
   perfilUsuario,
@@ -65,9 +74,14 @@ const ComentarioCard = ({
 
   return (
     <div 
-      className={`bg-gray-900 border ${comentario.visivel ? 'border-gray-800' : 'border-amber-500/30'} rounded-lg p-4 transition-all ${!comentario.visivel && 'bg-amber-950/10'} ${comentario.usuario_eh_admin ? 'border-blue-500/30 bg-blue-950/10' : ''}`}
+      className={`bg-gray-900 border ${comentario.visivel ? 'border-gray-800' : 'border-amber-500/30'} 
+        ${comentario.trancado ? 'border-red-500/30 bg-red-950/5' : ''} 
+        ${!comentario.visivel && 'bg-amber-950/10'} 
+        ${comentario.usuario_eh_admin ? 'border-blue-500/30 bg-blue-950/10' : ''} 
+        rounded-lg p-4 transition-all`}
     >
       {!comentario.visivel && ehAdmin && <VisibilityWarning />}
+      {comentario.trancado && <TrancadoWarning dataTrancamento={comentario.data_trancamento} />}
       
       <div className="flex items-start gap-3">
         <Avatar className="h-10 w-10 bg-gray-800">
@@ -115,13 +129,18 @@ const ComentarioCard = ({
                 onExcluir={() => onExcluir(comentario.id)}
                 onCurtir={() => onCurtir(comentario.id, !!comentario.curtido_pelo_usuario)}
                 onAlternarVisibilidade={() => onAlternarVisibilidade(comentario.id, comentario.visivel)}
+                onTrancar={onTrancar ? () => onTrancar(comentario.id) : undefined}
+                onDestrancar={onDestrancar ? () => onDestrancar(comentario.id) : undefined}
                 visivel={comentario.visivel}
+                trancado={comentario.trancado}
                 isExcluindo={isExcluindo}
                 isAlternandoVisibilidade={isAlternandoVisibilidade}
                 isAlternandoCurtida={isAlternandoCurtida}
+                isTrancando={isTrancando}
+                isDestrancando={isDestrancando}
               />
               
-              {isReplying && (
+              {isReplying && !comentario.trancado && (
                 <FormularioResposta
                   usuarioLogado={usuarioLogado}
                   perfilUsuario={perfilUsuario}
@@ -149,12 +168,16 @@ const ComentarioCard = ({
                       onCurtir={onCurtir}
                       onExcluir={onExcluir}
                       onAlternarVisibilidade={onAlternarVisibilidade}
+                      onTrancar={onTrancar}
+                      onDestrancar={onDestrancar}
                       onResponder={onResponder}
                       onSubmitResposta={onSubmitResposta}
                       isEditando={isEditando}
                       isExcluindo={isExcluindo}
                       isAlternandoVisibilidade={isAlternandoVisibilidade}
                       isAlternandoCurtida={isAlternandoCurtida}
+                      isTrancando={isTrancando}
+                      isDestrancando={isDestrancando}
                       isRespondendo={isRespondendo}
                       comentarioRespondendoId={comentarioRespondendoId}
                       perfilUsuario={perfilUsuario}

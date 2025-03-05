@@ -11,7 +11,9 @@ import {
   editarComentarioExistente,
   excluirComentarioExistente,
   alternarVisibilidadeComentario,
-  alternarCurtidaComentario
+  alternarCurtidaComentario,
+  trancarComentario,
+  destrancarComentario
 } from '@/services/mutacoesComentarios';
 
 export { type Comentario };
@@ -151,6 +153,40 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     }
   });
 
+  // Trancar comentário
+  const trancar = useMutation({
+    mutationFn: async (id: string) => {
+      if (!session?.user || !ehAdmin) {
+        throw new Error('Você não tem permissão para realizar esta ação');
+      }
+      return trancarComentario(id, session.user.id);
+    },
+    onSuccess: (id) => {
+      toast.success('Comentário trancado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['comentarios', itemId, itemTipo] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Erro ao trancar comentário');
+    }
+  });
+
+  // Destrancar comentário
+  const destrancar = useMutation({
+    mutationFn: async (id: string) => {
+      if (!session?.user || !ehAdmin) {
+        throw new Error('Você não tem permissão para realizar esta ação');
+      }
+      return destrancarComentario(id, session.user.id);
+    },
+    onSuccess: (id) => {
+      toast.success('Comentário destrancado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['comentarios', itemId, itemTipo] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Erro ao destrancar comentário');
+    }
+  });
+
   const iniciarEdicao = (comentario: Comentario) => {
     setEditandoId(comentario.id);
     setTextoEdicao(comentario.texto);
@@ -175,6 +211,8 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     excluirComentario,
     alternarVisibilidade,
     alternarCurtida,
+    trancar,
+    destrancar,
     editandoId,
     textoEdicao,
     setTextoEdicao,
