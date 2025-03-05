@@ -44,11 +44,7 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
       let query = supabase
         .from('comentarios')
         .select(`
-          *,
-          perfis (
-            nome,
-            avatar_url
-          )
+          *
         `)
         .eq('item_id', itemId)
         .eq('item_tipo', itemTipo as string)
@@ -65,13 +61,31 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
         console.error('Erro ao buscar comentários:', comentariosError);
         throw new Error('Erro ao carregar comentários');
       }
+
+      // Agora, buscar informações dos perfis de usuários para cada comentário
+      const usuariosIds = comentariosData.map(c => c.usuario_id);
+      const { data: perfisData, error: perfisError } = await supabase
+        .from('perfis')
+        .select('id, nome, avatar_url')
+        .in('id', usuariosIds);
+      
+      if (perfisError) {
+        console.error('Erro ao buscar perfis:', perfisError);
+        // Continuamos mesmo com erro, apenas sem informações de perfis
+      }
+      
+      // Mapeamento de ID do usuário para dados do perfil
+      const perfisPorUsuarioId = (perfisData || []).reduce((acc, perfil) => {
+        acc[perfil.id] = perfil;
+        return acc;
+      }, {} as Record<string, { id: string, nome: string | null, avatar_url: string | null }>);
       
       // Se não há usuário logado, retornamos os comentários sem verificar curtidas
       if (!session?.user) {
         return comentariosData.map(c => ({
           ...c,
-          usuario_nome: c.perfis?.nome || 'Usuário',
-          usuario_avatar: c.perfis?.avatar_url,
+          usuario_nome: perfisPorUsuarioId[c.usuario_id]?.nome || 'Usuário',
+          usuario_avatar: perfisPorUsuarioId[c.usuario_id]?.avatar_url,
           curtido_pelo_usuario: false
         })) as Comentario[];
       }
@@ -95,8 +109,8 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
       // Retornar comentários com informações adicionais
       return comentariosData.map(c => ({
         ...c,
-        usuario_nome: c.perfis?.nome || 'Usuário',
-        usuario_avatar: c.perfis?.avatar_url,
+        usuario_nome: perfisPorUsuarioId[c.usuario_id]?.nome || 'Usuário',
+        usuario_avatar: perfisPorUsuarioId[c.usuario_id]?.avatar_url,
         curtido_pelo_usuario: comentariosCurtidos.has(c.id)
       })) as Comentario[];
     },
