@@ -14,6 +14,7 @@ const GerenciarSeries = () => {
   const [termo, setTermo] = useState('');
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 10;
+  const [excluindo, setExcluindo] = useState<string | null>(null);
 
   useEffect(() => {
     carregarSeries();
@@ -23,6 +24,8 @@ const GerenciarSeries = () => {
     setCarregando(true);
     
     try {
+      console.log("Carregando lista de séries...");
+      
       let query = supabase
         .from('series')
         .select('*')
@@ -30,8 +33,12 @@ const GerenciarSeries = () => {
       
       const { data, error } = await query;
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao carregar séries:", error);
+        throw error;
+      }
       
+      console.log(`Carregadas ${data?.length || 0} séries com sucesso`);
       setSeries(data || []);
     } catch (erro) {
       console.error("Erro ao carregar séries:", erro);
@@ -47,18 +54,85 @@ const GerenciarSeries = () => {
     }
     
     try {
+      setExcluindo(id);
+      console.log(`Iniciando exclusão da série: ${titulo} (ID: ${id})`);
+      
+      // Verificar se existem temporadas relacionadas à série
+      const { data: temporadas, error: erroTemporadas } = await supabase
+        .from('temporadas')
+        .select('id')
+        .eq('serie_id', id);
+      
+      if (erroTemporadas) {
+        console.error("Erro ao verificar temporadas:", erroTemporadas);
+        throw erroTemporadas;
+      }
+      
+      if (temporadas && temporadas.length > 0) {
+        console.log(`A série possui ${temporadas.length} temporadas que precisam ser excluídas`);
+        
+        // Para cada temporada, excluir episódios relacionados
+        for (const temporada of temporadas) {
+          console.log(`Excluindo episódios da temporada ${temporada.id}`);
+          
+          const { error: erroEpisodios } = await supabase
+            .from('episodios')
+            .delete()
+            .eq('temporada_id', temporada.id);
+            
+          if (erroEpisodios) {
+            console.error(`Erro ao excluir episódios da temporada ${temporada.id}:`, erroEpisodios);
+            throw erroEpisodios;
+          }
+        }
+        
+        // Excluir temporadas
+        console.log("Excluindo todas as temporadas da série");
+        const { error: erroExcluirTemporadas } = await supabase
+          .from('temporadas')
+          .delete()
+          .eq('serie_id', id);
+        
+        if (erroExcluirTemporadas) {
+          console.error("Erro ao excluir temporadas:", erroExcluirTemporadas);
+          throw erroExcluirTemporadas;
+        }
+      }
+      
+      // Verificar e excluir favoritos relacionados
+      console.log("Excluindo favoritos relacionados à série");
+      const { error: erroFavoritos } = await supabase
+        .from('favoritos')
+        .delete()
+        .eq('item_id', id)
+        .eq('tipo', 'serie');
+      
+      if (erroFavoritos) {
+        console.error("Erro ao excluir favoritos:", erroFavoritos);
+        toast.error("Erro ao excluir favoritos da série");
+        // Não interromper o processo por falha nos favoritos
+      }
+      
+      // Finalmente, excluir a série
+      console.log("Excluindo a série");
       const { error } = await supabase
         .from('series')
         .delete()
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao excluir série:", error);
+        throw error;
+      }
       
+      console.log(`Série "${titulo}" excluída com sucesso`);
       setSeries(series.filter(serie => serie.id !== id));
       toast.success(`Série "${titulo}" excluída com sucesso`);
-    } catch (erro) {
-      console.error("Erro ao excluir série:", erro);
-      toast.error("Erro ao excluir série");
+    } catch (erro: any) {
+      console.error("Erro completo ao excluir série:", erro);
+      toast.error(`Erro ao excluir série: ${erro.message || 'Erro desconhecido'}`);
+    } finally {
+      setExcluindo(null);
     }
   };
 
@@ -179,8 +253,13 @@ const GerenciarSeries = () => {
                           size="icon" 
                           className="h-8 w-8 bg-red-600/20 hover:bg-red-600/40 text-red-400"
                           onClick={() => handleDelete(serie.id, serie.titulo)}
+                          disabled={excluindo === serie.id}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {excluindo === serie.id ? (
+                            <span className="h-4 w-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                           <span className="sr-only">Excluir</span>
                         </Button>
                       </div>
