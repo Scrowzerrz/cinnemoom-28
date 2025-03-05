@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from 'sonner';
+import { useAuth } from './useAuth';
 
 interface Usuario {
   id: string;
@@ -15,6 +16,7 @@ interface Usuario {
 export function useUsuarioAdmin() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const { perfil } = useAuth();
   
   const carregarUsuarios = async () => {
     setCarregando(true);
@@ -110,6 +112,24 @@ export function useUsuarioAdmin() {
           });
         
         if (error) throw error;
+        
+        // Enviar notificação para o usuário que foi promovido a admin
+        if (perfil) {
+          const { error: erroNotif } = await supabase
+            .from('notificacoes')
+            .insert({
+              user_id: usuario.id,
+              titulo: 'Você é um Administrador Agora!',
+              mensagem: `${perfil.nome || perfil.email} concedeu a você permissões de administrador. Agora você pode acessar o painel administrativo e gerenciar usuários, filmes e séries.`,
+              tipo: 'admin_promocao',
+              item_id: usuario.id,
+              item_tipo: 'perfil'
+            });
+          
+          if (erroNotif) {
+            console.error("Erro ao enviar notificação:", erroNotif);
+          }
+        }
         
         toast.success(`Permissões de admin concedidas para ${usuario.nome || usuario.email}`);
       }

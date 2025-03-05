@@ -27,6 +27,9 @@ const NotificacaoBadge = () => {
                notificacao.item_tipo === 'temporada' || 
                notificacao.item_tipo === 'episodio') {
       navigate(`/serie/${notificacao.item_id}`);
+    } else if (notificacao.tipo === 'admin_promocao') {
+      // Para notificações de promoção a admin, redirecionar para o painel admin
+      navigate('/admin');
     }
   };
 
