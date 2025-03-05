@@ -1,12 +1,27 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Search, Menu, X, LogIn, User } from 'lucide-react';
+import { 
+  Search, 
+  Menu, 
+  X, 
+  LogIn, 
+  User, 
+  LogOut 
+} from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import NotificacaoBadge from './NotificacaoBadge';
 import AdminLink from './AdminLink';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 const Navbar = () => {
   const isMobile = useIsMobile();
@@ -15,7 +30,7 @@ const Navbar = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
-  const { session, perfil, loading } = useAuth();
+  const { session, perfil, loading, signOut } = useAuth();
   
   const links = [
     { name: 'Início', path: '/' },
@@ -41,6 +56,17 @@ const Navbar = () => {
     if (searchTerm.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
       setSearchTerm('');
+    }
+  };
+  
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success('Sessão encerrada com sucesso');
+      navigate('/');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      toast.error('Erro ao encerrar sessão');
     }
   };
   
@@ -89,14 +115,31 @@ const Navbar = () => {
             session ? (
               <div className="flex items-center space-x-3">
                 <NotificacaoBadge />
-                <Link to="/perfil">
-                  <Avatar className="h-9 w-9 bg-movieDark border border-gray-700">
-                    <AvatarImage src={perfil?.avatar_url || ''} alt={perfil?.nome || 'Usuário'} />
-                    <AvatarFallback className="bg-movieDark text-white">
-                      {perfil?.nome ? perfil.nome.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
-                    </AvatarFallback>
-                  </Avatar>
-                </Link>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="focus:outline-none">
+                      <Avatar className="h-9 w-9 bg-movieDark border border-gray-700 cursor-pointer hover:border-movieRed transition-colors">
+                        <AvatarImage src={perfil?.avatar_url || ''} alt={perfil?.nome || 'Usuário'} />
+                        <AvatarFallback className="bg-movieDark text-white">
+                          {perfil?.nome ? perfil.nome.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
+                        </AvatarFallback>
+                      </Avatar>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 bg-movieDarkBlue border-gray-700">
+                    <DropdownMenuItem asChild>
+                      <Link to="/perfil" className="cursor-pointer flex items-center gap-2 text-gray-200 hover:text-white focus:text-white">
+                        <User className="h-4 w-4" />
+                        <span>Meu Perfil</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer flex items-center gap-2 text-gray-200 hover:text-white focus:text-white" onClick={handleLogout}>
+                      <LogOut className="h-4 w-4" />
+                      <span>Sair</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <Link to="/auth">
@@ -151,6 +194,18 @@ const Navbar = () => {
                 </Link>
               ))}
               <AdminLink />
+              
+              {session && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="justify-start text-white hover:text-movieRed transition-colors px-0"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  <span>Sair</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>
