@@ -72,7 +72,7 @@ serve(async (req) => {
         
         Apenas esses caracteres são permitidos: {, }, ", :, ,, letras, números e pontuação básica.
         
-        REPITO: NÃO USE MARKDOWN. NÃO USE ```json ou ```. APENAS JSON PURO.
+        REPITO: NÃO USE MARKDOWN. NÃO USE BLOCOS DE CÓDIGO. APENAS JSON PURO.
       `;
       
       return basePrompt + (retry ? retryFormat : format);
