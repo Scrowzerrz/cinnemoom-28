@@ -65,14 +65,14 @@ serve(async (req) => {
         ATENÇÃO - ERRO ANTERIOR NO FORMATO! EXTREMAMENTE IMPORTANTE!
         
         Responda APENAS com um objeto JSON puro, SEM nenhuma formatação ou markdown. 
-        NÃO use blocos de código, aspas triplas, ou qualquer outra coisa além do JSON bruto.
+        NÃO use BLOCKS DE CÓDIGO ou qualquer outra coisa além do JSON bruto.
         
         Formato OBRIGATÓRIO:
         {"isAppropriate": true/false, "reason": "Explicação detalhada se o comentário for inapropriado"}
         
         Apenas esses caracteres são permitidos: {, }, ", :, ,, letras, números e pontuação básica.
         
-        REPITO: NÃO USE MARKDOWN. NÃO USE BLOCOS DE CÓDIGO. APENAS JSON PURO.
+        REPITO: NÃO USE MARKDOWN. NÃO USE BLOCKS DE CÓDIGO. APENAS JSON PURO.
       `;
       
       return basePrompt + (retry ? retryFormat : format);
@@ -80,7 +80,7 @@ serve(async (req) => {
 
     console.log("Enviando comentário para moderação:", commentText.substring(0, 50) + (commentText.length > 50 ? '...' : ''));
     
-    // Função para chamar a API OpenRouter/Gemini
+    // Função para chamar a API OpenRouter/DeepSeek
     const callModerationAPI = async (prompt) => {
       return await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -91,7 +91,7 @@ serve(async (req) => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          "model": "google/gemini-2.0-pro-exp-02-05:free",
+          "model": "deepseek/deepseek-r1:free",
           "messages": [
             {
               "role": "user",
@@ -372,3 +372,4 @@ serve(async (req) => {
     );
   }
 });
+
