@@ -97,7 +97,8 @@ serve(async (req) => {
               "role": "user",
               "content": prompt
             }
-          ]
+          ],
+          "max_tokens": 500
         })
       });
     };
@@ -123,69 +124,102 @@ serve(async (req) => {
     let needsRetry = false;
     
     try {
-      // Limpa a resposta da IA para remover markdown ou outras formatações
-      const cleanedResponse = aiResponse
-        .replace(/```json/g, '') // Remove tags markdown json
-        .replace(/```/g, '')     // Remove tags markdown
-        .trim();                 // Remove espaços em branco
+      // Nova implementação de limpeza mais robusta para JSON
+      const sanitizeJSONString = (str) => {
+        // Remove qualquer coisa antes da primeira chave
+        let cleaned = str.substring(str.indexOf('{'));
+        // Remove qualquer coisa depois da última chave
+        cleaned = cleaned.substring(0, cleaned.lastIndexOf('}') + 1);
+        // Remove markdown e formatações
+        cleaned = cleaned.replace(/```json|```/g, '');
+        // Remove quebras de linha e espaços extras
+        cleaned = cleaned.replace(/\n/g, '').replace(/\r/g, '').replace(/\t/g, '').trim();
+        // Corrige aspas inconsistentes
+        cleaned = cleaned.replace(/([''])/g, '"');
+        // Garante que todas as propriedades e valores estejam com aspas duplas
+        cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3');
+        return cleaned;
+      };
       
-      // PRIMEIRA VERIFICAÇÃO: Tenta analisar a resposta JSON
+      // Tenta primeiro o método normal
       try {
-        // Analisa a resposta JSON limpa
+        const cleanedResponse = aiResponse
+          .replace(/```json/g, '')
+          .replace(/```/g, '')
+          .trim();
+        
         moderationResult = JSON.parse(cleanedResponse);
         
-        // Valida a estrutura da resposta
-        if (typeof moderationResult.isAppropriate !== 'boolean' || typeof moderationResult.reason !== 'string') {
-          console.error('Formato de resposta IA inválido - estrutura incorreta:', moderationResult);
+        // Valida a estrutura
+        if (typeof moderationResult.isAppropriate !== 'boolean' || 
+            typeof moderationResult.reason !== 'string') {
+          throw new Error('Estrutura inválida do JSON');
+        }
+      } catch (jsonError) {
+        console.error('Falha no parsing JSON padrão:', jsonError);
+        
+        // Tenta com sanitização avançada
+        try {
+          const sanitizedJSON = sanitizeJSONString(aiResponse);
+          console.log('JSON sanitizado:', sanitizedJSON);
+          moderationResult = JSON.parse(sanitizedJSON);
+          
+          // Valida a estrutura
+          if (typeof moderationResult.isAppropriate !== 'boolean' || 
+              typeof moderationResult.reason !== 'string') {
+            throw new Error('Estrutura inválida após sanitização');
+          }
+        } catch (sanitizeError) {
+          console.error('Falha no parsing JSON sanitizado:', sanitizeError);
           needsRetry = true;
         }
-        
-      } catch (jsonError) {
-        console.error('Erro ao analisar JSON da resposta da IA:', jsonError);
-        console.log('Resposta bruta da IA que falhou na análise:', aiResponse);
-        needsRetry = true;
       }
     } catch (error) {
       console.error('Erro geral ao processar resposta da IA:', error);
       needsRetry = true;
     }
     
-    // Segunda tentativa se a primeira falhou
+    // Segunda tentativa com instruções mais explícitas
     if (needsRetry) {
-      console.log("Primeira tentativa falhou. Enviando segunda solicitação para IA com instruções mais explícitas...");
+      console.log("Primeira tentativa falhou. Enviando segunda solicitação com instruções mais explícitas...");
       
       response = await callModerationAPI(createPrompt(true));
       
       if (!response.ok) {
         const errorData = await response.text();
         console.error('OpenRouter API error na segunda tentativa:', errorData);
-        // Continue para o fallback
       } else {
         data = await response.json();
         aiResponse = data.choices[0].message.content;
         console.log("Resposta IA (segunda tentativa):", aiResponse);
         
         try {
-          // Limpeza ainda mais agressiva
-          const moreAggressiveCleanup = aiResponse
-            .replace(/```json/g, '')
-            .replace(/```/g, '')
-            .replace(/['"]\s*isAppropriate\s*['"]\s*:\s*/g, '"isAppropriate":')
-            .replace(/['"]\s*reason\s*['"]\s*:\s*/g, '"reason":')
-            .replace(/\n/g, '')
-            .replace(/\r/g, '')
-            .replace(/\t/g, '')
-            .replace(/,\s*}/g, '}')
-            .trim();
+          // Tentativa de limpeza extrema para casos difíceis
+          const extractJSONPattern = (text) => {
+            const jsonPattern = /\{(?:[^{}]|"(?:\\.|[^"\\])*")*\}/g;
+            const matches = text.match(jsonPattern);
+            return matches ? matches[0] : null;
+          };
           
-          moderationResult = JSON.parse(moreAggressiveCleanup);
-          
-          if (typeof moderationResult.isAppropriate !== 'boolean' || typeof moderationResult.reason !== 'string') {
-            throw new Error('Estrutura de resposta inválida após limpeza agressiva');
+          // Tenta extrair o JSON usando expressão regular
+          const extractedJSON = extractJSONPattern(aiResponse);
+          if (extractedJSON) {
+            console.log('JSON extraído com regex:', extractedJSON);
+            moderationResult = JSON.parse(extractedJSON);
+            
+            if (typeof moderationResult.isAppropriate !== 'boolean') {
+              throw new Error('Propriedade isAppropriate não é booleana');
+            }
+            
+            if (!moderationResult.reason) {
+              moderationResult.reason = moderationResult.isAppropriate ? 
+                "" : "Conteúdo impróprio detectado";
+            }
+            
+            needsRetry = false;
+          } else {
+            throw new Error('Não foi possível extrair JSON com regex');
           }
-          
-          console.log('Resposta analisada com sucesso após limpeza agressiva');
-          needsRetry = false;
         } catch (secondError) {
           console.error('Falha na segunda tentativa de análise:', secondError);
           // Continue para o fallback
@@ -201,7 +235,9 @@ serve(async (req) => {
       if (aiResponse.includes('"isAppropriate":true') || 
           aiResponse.includes('"isAppropriate": true') || 
           aiResponse.includes("'isAppropriate': true") ||
-          aiResponse.includes("isAppropriate: true")) {
+          aiResponse.includes("isAppropriate: true") ||
+          aiResponse.toLowerCase().includes("appropriate") && 
+          !aiResponse.toLowerCase().includes("inappropriate")) {
         moderationResult = {
           isAppropriate: true,
           reason: ""
@@ -209,7 +245,8 @@ serve(async (req) => {
       } else if (aiResponse.includes('"isAppropriate":false') || 
                 aiResponse.includes('"isAppropriate": false') || 
                 aiResponse.includes("'isAppropriate': false") ||
-                aiResponse.includes("isAppropriate: false")) {
+                aiResponse.includes("isAppropriate: false") ||
+                aiResponse.toLowerCase().includes("inappropriate")) {
         // Tenta extrair o motivo do texto
         const reasonPattern = /"reason":\s*"([^"]*)"|'reason':\s*'([^']*)'|reason:\s*["']([^"']*)["']/;
         const reasonMatch = aiResponse.match(reasonPattern);
@@ -242,11 +279,19 @@ serve(async (req) => {
             reason: "Linguagem ofensiva detectada. Comentários com palavrões ou termos discriminatórios não são permitidos."
           };
         } else {
-          // Fallback padrão se todas as verificações falharem
-          moderationResult = { 
-            isAppropriate: true, 
-            reason: "" 
-          };
+          // Limite de tamanho para mensagens muito longas
+          if (commentText.length > 2000) {
+            moderationResult = {
+              isAppropriate: false,
+              reason: "Comentário muito longo. Por favor, limite seus comentários a 2000 caracteres."
+            };
+          } else {
+            // Fallback padrão se todas as verificações falharem
+            moderationResult = { 
+              isAppropriate: true, 
+              reason: "" 
+            };
+          }
         }
       }
     }
@@ -298,6 +343,15 @@ serve(async (req) => {
           reason: "Uso excessivo de letras maiúsculas. Evite 'gritar' nos comentários."
         };
       }
+      
+      // Verifica tamanho de mensagem - limitação para evitar problemas com JSON longas
+      if (commentText.length > 2000) {
+        console.warn('Comentário muito longo, tamanho:', commentText.length);
+        moderationResult = {
+          isAppropriate: false,
+          reason: "Comentário muito longo. Por favor, limite seus comentários a 2000 caracteres."
+        };
+      }
     }
 
     console.log("Resultado final da moderação:", JSON.stringify(moderationResult));
@@ -309,7 +363,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Erro na função moderate-comment:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        isAppropriate: false,
+        reason: "Erro ao processar o comentário. Por favor, tente novamente com um comentário mais curto."
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
