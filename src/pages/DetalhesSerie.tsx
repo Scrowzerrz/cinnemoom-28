@@ -16,6 +16,7 @@ import TabAssistir from '@/components/series/TabAssistir';
 import TabTemporadas from '@/components/series/TabTemporadas';
 import TabSobre from '@/components/series/TabSobre';
 import TabComentarios from '@/components/series/TabComentarios';
+import { useMobile } from '@/hooks/use-mobile';
 
 const DetalhesSerie = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +24,7 @@ const DetalhesSerie = () => {
   const [temporadaAtiva, setTemporadaAtiva] = useState(1);
   const [episodioAtivo, setEpisodioAtivo] = useState<string | null>(null);
   const [isTrailer, setIsTrailer] = useState(false);
+  const isMobile = useMobile();
   
   const { 
     data: serie, 
@@ -116,44 +118,46 @@ const DetalhesSerie = () => {
       </SerieFundoBlur>
       
       {/* Conteúdo da página */}
-      <div className="container mx-auto px-4 py-8 relative z-10">
+      <div className="container mx-auto px-4 py-4 md:py-8 relative z-10">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <AbaSerie activeTab={activeTab} setActiveTab={setActiveTab} />
           
-          <TabsContent value="assistir">
-            <TabAssistir 
-              serie={serie}
-              isTrailer={isTrailer}
-              episodioAtual={episodioAtual}
-              temporadaAtual={temporadaAtual}
-              setIsTrailer={setIsTrailer}
-              trocarEpisodio={trocarEpisodio}
-            />
-          </TabsContent>
-          
-          <TabsContent value="temporadas">
-            <TabTemporadas 
-              temporadaAtual={temporadaAtual}
-              temporadaAtiva={temporadaAtiva}
-              episodioAtivo={episodioAtivo}
-              trocarTemporada={trocarTemporada}
-              trocarEpisodio={trocarEpisodio}
-              totalTemporadas={serie.temporadas.length}
-              serieId={serie.id}
-            />
-          </TabsContent>
-          
-          <TabsContent value="sobre">
-            <TabSobre 
-              serie={serie} 
-              trocarTemporada={trocarTemporada} 
-              setActiveTab={setActiveTab} 
-            />
-          </TabsContent>
-          
-          <TabsContent value="comentarios">
-            <TabComentarios serieId={serie.id} />
-          </TabsContent>
+          <div className="mt-4 md:mt-6">
+            <TabsContent value="assistir">
+              <TabAssistir 
+                serie={serie}
+                isTrailer={isTrailer}
+                episodioAtual={episodioAtual}
+                temporadaAtual={temporadaAtual}
+                setIsTrailer={setIsTrailer}
+                trocarEpisodio={trocarEpisodio}
+              />
+            </TabsContent>
+            
+            <TabsContent value="temporadas">
+              <TabTemporadas 
+                temporadaAtual={temporadaAtual}
+                temporadaAtiva={temporadaAtiva}
+                episodioAtivo={episodioAtivo}
+                trocarTemporada={trocarTemporada}
+                trocarEpisodio={trocarEpisodio}
+                totalTemporadas={serie.temporadas.length}
+                serieId={serie.id}
+              />
+            </TabsContent>
+            
+            <TabsContent value="sobre">
+              <TabSobre 
+                serie={serie} 
+                trocarTemporada={trocarTemporada} 
+                setActiveTab={setActiveTab} 
+              />
+            </TabsContent>
+            
+            <TabsContent value="comentarios">
+              <TabComentarios serieId={serie.id} />
+            </TabsContent>
+          </div>
         </Tabs>
       </div>
       

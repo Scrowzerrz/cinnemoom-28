@@ -15,10 +15,12 @@ const SerieFundoBlur = ({ posterUrl, children }: SerieFundoBlurProps) => {
         style={{ 
           backgroundImage: `url(${posterUrl})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center'
+          backgroundPosition: 'top center',
+          height: '100%',
+          maxHeight: '70vh'
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-movieDarkBlue/95 to-black/100 backdrop-blur-md"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-movieDarkBlue/95 to-black/100 backdrop-blur-sm"></div>
       </div>
       
       <div className="relative z-10">
