@@ -1,8 +1,15 @@
 
-import { AIService, ModerationResult } from './aiService.ts';
-import { verificarTermosOfensivos, verificarCaracteresRepetitivos, verificarCapitalizacaoExcessiva, verificarTamanhoComentario } from './utils.ts';
+import { AIService, ModerationResult } from './aiService';
+import { verificarTermosOfensivos } from './utils/textUtils';
+import { 
+  verificarCaracteresRepetitivos, 
+  verificarCapitalizacaoExcessiva, 
+  verificarTamanhoComentario 
+} from './utils/validationUtils';
 
-// Classe principal para o serviço de moderação
+/**
+ * Main service for comment moderation
+ */
 export class ModerationService {
   private aiService: AIService;
   
@@ -10,7 +17,11 @@ export class ModerationService {
     this.aiService = new AIService(apiKey);
   }
   
-  // Verifica o comentário usando a IA e regras complementares
+  /**
+   * Moderates a comment using AI and complementary rules
+   * @param commentText The comment text to moderate
+   * @returns Moderation result with appropriate status and reason
+   */
   public async moderateComment(commentText: string): Promise<ModerationResult> {
     // Verificações iniciais diretas (rápidas)
     
