@@ -37,69 +37,101 @@ export class AIService {
       };
     }
     
-    // Primeira tentativa
-    let response = await this.apiService.callModerationAPI(
-      this.promptService.createPrompt(commentText, false)
-    );
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('OpenRouter API error:', errorData);
-      throw new Error(`Error calling moderation API: ${errorData}`);
-    }
-
-    let data = await response.json();
-    let aiResponse = data.choices[0].message.content;
-    console.log("Resposta IA (primeira tentativa):", aiResponse);
-    
-    // Processa a resposta
-    let moderationResult = await this.responseProcessor.processAIResponse(aiResponse);
-    
-    // Segunda tentativa se a primeira falhar
-    if (!moderationResult) {
-      console.log("Primeira tentativa falhou. Enviando segunda solicitação com instruções mais explícitas...");
-      
-      response = await this.apiService.callModerationAPI(
-        this.promptService.createPrompt(commentText, true)
+    try {
+      // Primeira tentativa
+      let response = await this.apiService.callModerationAPI(
+        this.promptService.createPrompt(commentText, false)
       );
-      
+
       if (!response.ok) {
         const errorData = await response.text();
-        console.error('OpenRouter API error na segunda tentativa:', errorData);
-        throw new Error(`Error calling moderation API (second attempt): ${errorData}`);
+        console.error('OpenRouter API error:', errorData);
+        throw new Error(`Error calling moderation API: ${errorData}`);
+      }
+
+      let data = await response.json();
+      
+      // Verificar se os dados têm o formato esperado
+      if (!data || !data.choices || !data.choices.length || !data.choices[0].message) {
+        console.error('Unexpected API response format:', JSON.stringify(data));
+        throw new Error('Invalid API response format');
       }
       
-      data = await response.json();
-      aiResponse = data.choices[0].message.content;
-      console.log("Resposta IA (segunda tentativa):", aiResponse);
+      let aiResponse = data.choices[0].message.content;
+      console.log("Resposta IA (primeira tentativa):", aiResponse);
       
-      moderationResult = await this.responseProcessor.processAIResponse(aiResponse);
+      // Processa a resposta
+      let moderationResult = await this.responseProcessor.processAIResponse(aiResponse);
       
-      // Se ainda falhar, tenta extrair do texto
+      // Segunda tentativa se a primeira falhar
       if (!moderationResult) {
-        moderationResult = this.responseProcessor.extractResultFromText(aiResponse);
+        console.log("Primeira tentativa falhou. Enviando segunda solicitação com instruções mais explícitas...");
+        
+        response = await this.apiService.callModerationAPI(
+          this.promptService.createPrompt(commentText, true)
+        );
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error('OpenRouter API error na segunda tentativa:', errorData);
+          throw new Error(`Error calling moderation API (second attempt): ${errorData}`);
+        }
+        
+        data = await response.json();
+        
+        // Verificar novamente se os dados têm o formato esperado
+        if (!data || !data.choices || !data.choices.length || !data.choices[0].message) {
+          console.error('Unexpected API response format in second attempt:', JSON.stringify(data));
+          throw new Error('Invalid API response format in second attempt');
+        }
+        
+        aiResponse = data.choices[0].message.content;
+        console.log("Resposta IA (segunda tentativa):", aiResponse);
+        
+        moderationResult = await this.responseProcessor.processAIResponse(aiResponse);
+        
+        // Se ainda falhar, tenta extrair do texto
+        if (!moderationResult) {
+          moderationResult = this.responseProcessor.extractResultFromText(aiResponse);
+        }
       }
-    }
-    
-    // Fallback se todas as tentativas falharem
-    if (!moderationResult) {
-      console.log("Todas as tentativas de processamento falharam. Usando verificação direta...");
       
-      const containsOffensiveTerm = verificarTermosOfensivos(commentText);
+      // Fallback se todas as tentativas falharem
+      if (!moderationResult) {
+        console.log("Todas as tentativas de processamento falharam. Usando verificação direta...");
+        
+        const containsOffensiveTerm = verificarTermosOfensivos(commentText);
+        
+        if (containsOffensiveTerm) {
+          return {
+            isAppropriate: false,
+            reason: "Linguagem ofensiva detectada. Comentários com palavrões ou termos discriminatórios não são permitidos."
+          };
+        } else {
+          return { 
+            isAppropriate: true, 
+            reason: "" 
+          };
+        }
+      }
       
-      if (containsOffensiveTerm) {
+      return moderationResult;
+    } catch (error) {
+      console.error('Erro ao processar moderação via IA:', error);
+      
+      // Fallback para verificação manual direta se a IA falhar
+      if (verificarTermosOfensivos(commentText)) {
         return {
           isAppropriate: false,
-          reason: "Linguagem ofensiva detectada. Comentários com palavrões ou termos discriminatórios não são permitidos."
-        };
-      } else {
-        return { 
-          isAppropriate: true, 
-          reason: "" 
+          reason: "Linguagem ofensiva detectada. Comentários com palavrões não são permitidos."
         };
       }
+      
+      // Se não for possível verificar, permite o comentário mas registra o erro
+      return { 
+        isAppropriate: true, 
+        reason: "" 
+      };
     }
-    
-    return moderationResult;
   }
 }

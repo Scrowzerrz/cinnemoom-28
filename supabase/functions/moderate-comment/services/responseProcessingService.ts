@@ -1,3 +1,4 @@
+
 import { ModerationResult } from '../models/moderationResult.ts';
 
 /**
@@ -11,6 +12,13 @@ export class ResponseProcessingService {
    */
   public async processAIResponse(aiResponse: string): Promise<ModerationResult | null> {
     try {
+      if (!aiResponse) {
+        console.error('AI response is empty or undefined');
+        return null;
+      }
+      
+      console.log("Processando resposta de AI com tamanho:", aiResponse.length);
+      
       // Try to parse JSON directly
       const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) || 
                         aiResponse.match(/{[\s\S]*"isAppropriate"[\s\S]*}/);
@@ -18,16 +26,26 @@ export class ResponseProcessingService {
       if (jsonMatch) {
         const jsonStr = jsonMatch[1] || jsonMatch[0];
         const cleanJson = jsonStr.replace(/```json|```/g, '').trim();
-        const result = JSON.parse(cleanJson);
         
-        if (typeof result.isAppropriate === 'boolean' && typeof result.reason === 'string') {
-          return result as ModerationResult;
+        try {
+          const result = JSON.parse(cleanJson);
+          
+          if (typeof result.isAppropriate === 'boolean' && typeof result.reason === 'string') {
+            console.log("JSON válido extraído com sucesso");
+            return result as ModerationResult;
+          } else {
+            console.error('JSON extraído não contém as propriedades esperadas:', result);
+          }
+        } catch (parseError) {
+          console.error('Erro ao fazer parse do JSON extraído:', parseError, 'Raw JSON:', cleanJson);
         }
+      } else {
+        console.log("Não foi possível encontrar JSON na resposta");
       }
       
       return null;
     } catch (error) {
-      console.error('Error processing AI response:', error);
+      console.error('Erro processando resposta de AI:', error);
       return null;
     }
   }
@@ -38,6 +56,14 @@ export class ResponseProcessingService {
    * @returns Extracted moderation result or default result
    */
   public extractResultFromText(aiResponse: string): ModerationResult {
+    if (!aiResponse) {
+      console.warn('AI response is empty in extractResultFromText, defaulting to appropriate');
+      return {
+        isAppropriate: true,
+        reason: ""
+      };
+    }
+    
     const lowerResponse = aiResponse.toLowerCase();
     
     // Check for inappropriate indicators
