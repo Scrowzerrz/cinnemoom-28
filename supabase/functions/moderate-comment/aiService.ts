@@ -1,3 +1,4 @@
+
 import { sanitizeJSONString, extractJSONPattern } from './utils.ts';
 
 // Interface para o resultado da moderação
@@ -205,6 +206,19 @@ export class AIService {
     }
 
     let data = await response.json();
+    
+    // Verificar se data e data.choices existem para evitar o erro
+    if (!data || !data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+      console.error('Resposta inválida da API:', JSON.stringify(data));
+      throw new Error('Resposta inválida da API de moderação');
+    }
+    
+    // Verificar se a primeira escolha e sua mensagem existem
+    if (!data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+      console.error('Formato de resposta inválido:', JSON.stringify(data.choices));
+      throw new Error('Formato de resposta inválido da API de moderação');
+    }
+    
     let aiResponse = data.choices[0].message.content;
     console.log("Resposta IA (primeira tentativa):", aiResponse);
     
@@ -224,6 +238,19 @@ export class AIService {
       }
       
       data = await response.json();
+      
+      // Verificar se data e data.choices existem para evitar o erro
+      if (!data || !data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+        console.error('Resposta inválida da API (segunda tentativa):', JSON.stringify(data));
+        throw new Error('Resposta inválida da API de moderação na segunda tentativa');
+      }
+      
+      // Verificar se a primeira escolha e sua mensagem existem
+      if (!data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+        console.error('Formato de resposta inválido (segunda tentativa):', JSON.stringify(data.choices));
+        throw new Error('Formato de resposta inválido da API de moderação na segunda tentativa');
+      }
+      
       aiResponse = data.choices[0].message.content;
       console.log("Resposta IA (segunda tentativa):", aiResponse);
       
