@@ -1,3 +1,4 @@
+
 import { sanitizeJSONString, extractJSONPattern } from './utils.ts';
 
 // Interface para o resultado da moderação
@@ -78,7 +79,7 @@ export class AIService {
             "content": prompt
           }
         ],
-        "max_tokens": 500
+        "max_tokens": 66000
       })
     });
   }
