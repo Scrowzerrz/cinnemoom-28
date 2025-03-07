@@ -25,6 +25,7 @@ export const adicionarNovoComentario = async (
     // e marca como não visível para moderação manual
     const visivel = moderationData?.isAppropriate !== false;
     const metadata = !visivel ? { moderationReason: moderationData.reason } : null;
+    const ocultadoAutomaticamente = !visivel;
 
     const { error } = await supabase
       .from('comentarios')
@@ -35,7 +36,9 @@ export const adicionarNovoComentario = async (
         texto,
         comentario_pai_id: comentarioPaiId,
         visivel,
-        metadata
+        metadata,
+        ocultado_automaticamente: ocultadoAutomaticamente,
+        data_ocultacao: ocultadoAutomaticamente ? new Date().toISOString() : null
       });
     
     if (error) {
@@ -94,11 +97,18 @@ export const excluirComentarioExistente = async (id: string) => {
 
 export const alternarVisibilidadeComentario = async (
   id: string,
-  visivel: boolean
+  visivel: boolean,
+  adminId: string
 ) => {
+  const agora = new Date().toISOString();
+  
   const { data, error } = await supabase
     .from('comentarios')
-    .update({ visivel: !visivel })
+    .update({ 
+      visivel: !visivel,
+      ocultado_por: !visivel ? null : adminId,
+      data_ocultacao: !visivel ? null : agora
+    })
     .eq('id', id)
     .select('*')
     .single();
@@ -152,7 +162,7 @@ export const trancarComentario = async (
     .rpc('trancar_comentario', {
       comentario_id: comentarioId,
       trancar: true,
-      usuario_admin_id: userId  // Corrigido para usar o novo nome do parâmetro
+      usuario_admin_id: userId
     });
     
   if (error) {
@@ -171,7 +181,7 @@ export const destrancarComentario = async (
     .rpc('trancar_comentario', {
       comentario_id: comentarioId,
       trancar: false,
-      usuario_admin_id: userId  // Corrigido para usar o novo nome do parâmetro
+      usuario_admin_id: userId
     });
     
   if (error) {

@@ -15,11 +15,14 @@ export type Database = {
           curtidas: number
           data_atualizacao: string
           data_criacao: string
+          data_ocultacao: string | null
           data_trancamento: string | null
           id: string
           item_id: string
           item_tipo: string
           metadata: Json | null
+          ocultado_automaticamente: boolean | null
+          ocultado_por: string | null
           texto: string
           trancado: boolean
           trancado_por: string | null
@@ -31,11 +34,14 @@ export type Database = {
           curtidas?: number
           data_atualizacao?: string
           data_criacao?: string
+          data_ocultacao?: string | null
           data_trancamento?: string | null
           id?: string
           item_id: string
           item_tipo: string
           metadata?: Json | null
+          ocultado_automaticamente?: boolean | null
+          ocultado_por?: string | null
           texto: string
           trancado?: boolean
           trancado_por?: string | null
@@ -47,11 +53,14 @@ export type Database = {
           curtidas?: number
           data_atualizacao?: string
           data_criacao?: string
+          data_ocultacao?: string | null
           data_trancamento?: string | null
           id?: string
           item_id?: string
           item_tipo?: string
           metadata?: Json | null
+          ocultado_automaticamente?: boolean | null
+          ocultado_por?: string | null
           texto?: string
           trancado?: boolean
           trancado_por?: string | null

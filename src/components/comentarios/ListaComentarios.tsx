@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from '@/components/ui/button';
 import { Comentario } from '@/types/comentario.types';
 import ComentarioCard from './ComentarioCard';
+import ComentariosOcultosToggle from './ComentariosOcultosToggle';
 import { PerfilUsuario } from '@/hooks/auth/types';
 
 interface ListaComentariosProps {
@@ -38,6 +39,9 @@ interface ListaComentariosProps {
   isDestrancando?: boolean;
   isRespondendo: boolean;
   perfilUsuario: PerfilUsuario | null;
+  comentariosOcultosCount?: number;
+  comentariosOcultosAbertos?: boolean;
+  alternarComentariosOcultos?: () => void;
 }
 
 const ListaComentarios = ({
@@ -45,6 +49,10 @@ const ListaComentarios = ({
   isLoading,
   error,
   refetch,
+  comentariosOcultosCount = 0,
+  comentariosOcultosAbertos = false,
+  alternarComentariosOcultos,
+  ehAdmin,
   ...props
 }: ListaComentariosProps) => {
 
@@ -91,20 +99,39 @@ const ListaComentarios = ({
 
   if (comentarios.length === 0) {
     return (
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center">
-        <MessageSquare className="h-12 w-12 mx-auto text-gray-600 mb-3" />
-        <h3 className="text-white text-lg mb-1">Nenhum comentário ainda</h3>
-        <p className="text-gray-400">Seja o primeiro a comentar!</p>
-      </div>
+      <>
+        {ehAdmin && comentariosOcultosCount > 0 && alternarComentariosOcultos && (
+          <ComentariosOcultosToggle 
+            count={comentariosOcultosCount} 
+            aberto={comentariosOcultosAbertos} 
+            onAlternar={alternarComentariosOcultos} 
+          />
+        )}
+        
+        <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center">
+          <MessageSquare className="h-12 w-12 mx-auto text-gray-600 mb-3" />
+          <h3 className="text-white text-lg mb-1">Nenhum comentário ainda</h3>
+          <p className="text-gray-400">Seja o primeiro a comentar!</p>
+        </div>
+      </>
     );
   }
 
   return (
     <div className="space-y-4">
+      {ehAdmin && comentariosOcultosCount > 0 && alternarComentariosOcultos && (
+        <ComentariosOcultosToggle 
+          count={comentariosOcultosCount} 
+          aberto={comentariosOcultosAbertos} 
+          onAlternar={alternarComentariosOcultos} 
+        />
+      )}
+      
       {comentarios.map(comentario => (
         <ComentarioCard
           key={comentario.id}
           comentario={comentario}
+          ehAdmin={ehAdmin}
           {...props}
         />
       ))}

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -29,6 +30,7 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [textoEdicao, setTextoEdicao] = useState<string>('');
   const [comentarioRespondendoId, setComentarioRespondendoId] = useState<string | null>(null);
+  const [comentariosOcultosAbertos, setComentariosOcultosAbertos] = useState<boolean>(false);
 
   const { 
     data: comentarios = [], 
@@ -112,7 +114,7 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
       if (!session?.user || !ehAdmin) {
         throw new Error('Você não tem permissão para realizar esta ação');
       }
-      return alternarVisibilidadeComentario(id, visivel);
+      return alternarVisibilidadeComentario(id, visivel, session.user.id);
     },
     onSuccess: (data) => {
       const status = data.visivel ? 'exibido' : 'ocultado';
@@ -200,8 +202,28 @@ export const useComentarios = (itemId: string, itemTipo: 'filme' | 'serie') => {
     setComentarioRespondendoId(comentario?.id || null);
   };
 
+  const alternarComentariosOcultos = () => {
+    setComentariosOcultosAbertos(!comentariosOcultosAbertos);
+  };
+
+  // Filtragem de comentários para mostrar apenas os comentários visíveis para usuários normais
+  // ou todos para administradores, com os comentários ocultos colapsados se configurado assim
+  const comentariosFiltrados = ehAdmin 
+    ? (comentariosOcultosAbertos 
+        ? comentarios 
+        : comentarios.filter(c => c.visivel))
+    : comentarios;
+
+  // Obtemos a contagem de comentários ocultos para mostrar no botão
+  const comentariosOcultosCount = ehAdmin 
+    ? comentarios.filter(c => !c.visivel).length 
+    : 0;
+
   return {
-    comentarios,
+    comentarios: comentariosFiltrados,
+    comentariosOcultosCount,
+    comentariosOcultosAbertos,
+    alternarComentariosOcultos,
     isLoading,
     error,
     refetch,

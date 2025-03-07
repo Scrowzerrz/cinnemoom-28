@@ -81,8 +81,21 @@ const ComentarioCard = ({
         ${comentario.usuario_eh_admin ? 'border-blue-500/30 bg-blue-950/10' : ''} 
         rounded-lg p-4 transition-all`}
     >
-      {!comentario.visivel && ehAdmin && <VisibilityWarning moderationReason={moderationReason} />}
-      {comentario.trancado && <TrancadoWarning dataTrancamento={comentario.data_trancamento} />}
+      {!comentario.visivel && ehAdmin && (
+        <VisibilityWarning 
+          moderationReason={moderationReason} 
+          ocultadoAutomaticamente={!!comentario.ocultado_automaticamente}
+          ocultadoPorAdmin={comentario.ocultado_por_admin}
+          dataOcultacao={comentario.data_ocultacao}
+        />
+      )}
+      
+      {comentario.trancado && (
+        <TrancadoWarning 
+          dataTrancamento={comentario.data_trancamento} 
+          trancadoPorAdmin={comentario.trancado_por_admin}
+        />
+      )}
       
       <div className="flex items-start gap-3">
         <Avatar className="h-10 w-10 bg-gray-800">

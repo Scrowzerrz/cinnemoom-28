@@ -24,7 +24,10 @@ export const buscarComentarios = async (
       comentario_pai_id,
       trancado,
       trancado_por,
-      data_trancamento
+      data_trancamento,
+      ocultado_por,
+      data_ocultacao,
+      ocultado_automaticamente
     `)
     .eq('item_id', itemId)
     .eq('item_tipo', itemTipo)
@@ -58,7 +61,10 @@ export const buscarComentarios = async (
       comentario_pai_id,
       trancado,
       trancado_por,
-      data_trancamento
+      data_trancamento,
+      ocultado_por,
+      data_ocultacao,
+      ocultado_automaticamente
     `)
     .in('comentario_pai_id', comentariosData.map(c => c.id))
     .order('data_criacao', { ascending: true });
@@ -68,11 +74,25 @@ export const buscarComentarios = async (
     throw new Error('Erro ao carregar respostas');
   }
 
-  // Coletar todos os IDs de usuários (de comentários e respostas)
-  const usuariosIds = [
-    ...comentariosData.map(c => c.usuario_id),
-    ...(respostasData || []).map(r => r.usuario_id)
-  ];
+  // Coletar todos os IDs de usuários (de comentários, respostas, e ocultados/trancados por administradores)
+  const todosUsuariosIds = new Set<string>();
+  
+  // Adiciona IDs de usuários dos comentários
+  comentariosData.forEach(c => {
+    todosUsuariosIds.add(c.usuario_id);
+    if (c.ocultado_por) todosUsuariosIds.add(c.ocultado_por);
+    if (c.trancado_por) todosUsuariosIds.add(c.trancado_por);
+  });
+  
+  // Adiciona IDs de usuários das respostas
+  (respostasData || []).forEach(r => {
+    todosUsuariosIds.add(r.usuario_id);
+    if (r.ocultado_por) todosUsuariosIds.add(r.ocultado_por);
+    if (r.trancado_por) todosUsuariosIds.add(r.trancado_por);
+  });
+  
+  // Converter Set para array para usar na consulta
+  const usuariosIds = Array.from(todosUsuariosIds);
   
   // Buscar informações dos perfis de usuários
   const { data: perfisData, error: perfisError } = await supabase
@@ -104,13 +124,27 @@ export const buscarComentarios = async (
   const adminsIds = new Set((adminsData || []).map(admin => admin.user_id));
 
   // Processar respostas com informações de usuário
-  const respostasProcessadas = (respostasData || []).map(r => ({
-    ...r,
-    usuario_nome: perfisPorUsuarioId[r.usuario_id]?.nome || 'Usuário',
-    usuario_avatar: perfisPorUsuarioId[r.usuario_id]?.avatar_url,
-    curtido_pelo_usuario: userId ? false : false, // Será atualizado abaixo
-    usuario_eh_admin: adminsIds.has(r.usuario_id)
-  }));
+  const respostasProcessadas = (respostasData || []).map(r => {
+    const ocultadoPorAdmin = r.ocultado_por ? {
+      id: r.ocultado_por,
+      nome: perfisPorUsuarioId[r.ocultado_por]?.nome || 'Administrador',
+    } : null;
+    
+    const trancadoPorAdmin = r.trancado_por ? {
+      id: r.trancado_por,
+      nome: perfisPorUsuarioId[r.trancado_por]?.nome || 'Administrador',
+    } : null;
+    
+    return {
+      ...r,
+      usuario_nome: perfisPorUsuarioId[r.usuario_id]?.nome || 'Usuário',
+      usuario_avatar: perfisPorUsuarioId[r.usuario_id]?.avatar_url,
+      curtido_pelo_usuario: userId ? false : false, // Será atualizado abaixo
+      usuario_eh_admin: adminsIds.has(r.usuario_id),
+      ocultado_por_admin: ocultadoPorAdmin,
+      trancado_por_admin: trancadoPorAdmin
+    };
+  });
 
   // Agrupar respostas por comentário pai
   const respostasPorPai: Record<string, Comentario[]> = {};
@@ -123,14 +157,28 @@ export const buscarComentarios = async (
 
   // Se não há usuário logado, retornamos os comentários sem verificar curtidas
   if (!userId) {
-    return comentariosData.map(c => ({
-      ...c,
-      usuario_nome: perfisPorUsuarioId[c.usuario_id]?.nome || 'Usuário',
-      usuario_avatar: perfisPorUsuarioId[c.usuario_id]?.avatar_url,
-      curtido_pelo_usuario: false,
-      usuario_eh_admin: adminsIds.has(c.usuario_id),
-      respostas: respostasPorPai[c.id] || []
-    })) as Comentario[];
+    return comentariosData.map(c => {
+      const ocultadoPorAdmin = c.ocultado_por ? {
+        id: c.ocultado_por,
+        nome: perfisPorUsuarioId[c.ocultado_por]?.nome || 'Administrador',
+      } : null;
+      
+      const trancadoPorAdmin = c.trancado_por ? {
+        id: c.trancado_por,
+        nome: perfisPorUsuarioId[c.trancado_por]?.nome || 'Administrador',
+      } : null;
+      
+      return {
+        ...c,
+        usuario_nome: perfisPorUsuarioId[c.usuario_id]?.nome || 'Usuário',
+        usuario_avatar: perfisPorUsuarioId[c.usuario_id]?.avatar_url,
+        curtido_pelo_usuario: false,
+        usuario_eh_admin: adminsIds.has(c.usuario_id),
+        respostas: respostasPorPai[c.id] || [],
+        ocultado_por_admin: ocultadoPorAdmin,
+        trancado_por_admin: trancadoPorAdmin
+      };
+    }) as Comentario[];
   }
   
   // Verificar quais comentários o usuário atual curtiu
@@ -154,12 +202,26 @@ export const buscarComentarios = async (
   }
   
   // Retornar comentários com informações adicionais e respostas
-  return comentariosData.map(c => ({
-    ...c,
-    usuario_nome: perfisPorUsuarioId[c.usuario_id]?.nome || 'Usuário',
-    usuario_avatar: perfisPorUsuarioId[c.usuario_id]?.avatar_url,
-    curtido_pelo_usuario: comentariosCurtidos.has(c.id),
-    usuario_eh_admin: adminsIds.has(c.usuario_id),
-    respostas: respostasPorPai[c.id] || []
-  })) as Comentario[];
+  return comentariosData.map(c => {
+    const ocultadoPorAdmin = c.ocultado_por ? {
+      id: c.ocultado_por,
+      nome: perfisPorUsuarioId[c.ocultado_por]?.nome || 'Administrador',
+    } : null;
+    
+    const trancadoPorAdmin = c.trancado_por ? {
+      id: c.trancado_por,
+      nome: perfisPorUsuarioId[c.trancado_por]?.nome || 'Administrador',
+    } : null;
+    
+    return {
+      ...c,
+      usuario_nome: perfisPorUsuarioId[c.usuario_id]?.nome || 'Usuário',
+      usuario_avatar: perfisPorUsuarioId[c.usuario_id]?.avatar_url,
+      curtido_pelo_usuario: comentariosCurtidos.has(c.id),
+      usuario_eh_admin: adminsIds.has(c.usuario_id),
+      respostas: respostasPorPai[c.id] || [],
+      ocultado_por_admin: ocultadoPorAdmin,
+      trancado_por_admin: trancadoPorAdmin
+    };
+  }) as Comentario[];
 };

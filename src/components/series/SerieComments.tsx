@@ -31,7 +31,10 @@ const SerieComments = ({ serieId }: SerieCommentsProps) => {
     perfilUsuario,
     ehAdmin,
     comentarioRespondendoId,
-    iniciarResposta
+    iniciarResposta,
+    comentariosOcultosCount,
+    comentariosOcultosAbertos,
+    alternarComentariosOcultos
   } = useComentarios(serieId, 'serie');
   
   return (
@@ -88,6 +91,9 @@ const SerieComments = ({ serieId }: SerieCommentsProps) => {
           isDestrancando={destrancar.isPending}
           isRespondendo={adicionarComentario.isPending}
           perfilUsuario={perfilUsuario}
+          comentariosOcultosCount={comentariosOcultosCount}
+          comentariosOcultosAbertos={comentariosOcultosAbertos}
+          alternarComentariosOcultos={alternarComentariosOcultos}
         />
       </CardContent>
     </Card>

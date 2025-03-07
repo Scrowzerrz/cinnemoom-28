@@ -18,9 +18,20 @@ export interface Comentario {
   trancado: boolean;
   trancado_por?: string;
   data_trancamento?: string;
+  ocultado_por?: string;
+  data_ocultacao?: string;
+  ocultado_automaticamente?: boolean;
   metadata?: {
     moderationReason?: string;
   };
+  ocultado_por_admin?: {
+    id: string;
+    nome: string;
+  } | null;
+  trancado_por_admin?: {
+    id: string;
+    nome: string;
+  } | null;
 }
 
 export type TipoItem = 'filme' | 'serie';

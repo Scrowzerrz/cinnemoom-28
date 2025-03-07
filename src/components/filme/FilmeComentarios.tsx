@@ -29,7 +29,10 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
     perfilUsuario,
     ehAdmin,
     comentarioRespondendoId,
-    iniciarResposta
+    iniciarResposta,
+    comentariosOcultosCount,
+    comentariosOcultosAbertos,
+    alternarComentariosOcultos
   } = useComentarios(filmeId, 'filme');
 
   return (
@@ -75,6 +78,9 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
         isDestrancando={destrancar.isPending}
         isRespondendo={adicionarComentario.isPending}
         perfilUsuario={perfilUsuario}
+        comentariosOcultosCount={comentariosOcultosCount}
+        comentariosOcultosAbertos={comentariosOcultosAbertos}
+        alternarComentariosOcultos={alternarComentariosOcultos}
       />
     </div>
   );
