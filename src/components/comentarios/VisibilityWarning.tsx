@@ -1,5 +1,5 @@
 
-import { EyeOff, AlertTriangle, Robot } from 'lucide-react';
+import { EyeOff, AlertTriangle, Bot } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -26,7 +26,7 @@ const VisibilityWarning = ({
   return (
     <div className="bg-amber-500/20 text-amber-200 px-3 py-1.5 rounded-md mb-3 text-sm flex items-start gap-2">
       {ocultadoAutomaticamente ? (
-        <Robot className="h-4 w-4 mt-0.5 flex-shrink-0" />
+        <Bot className="h-4 w-4 mt-0.5 flex-shrink-0" />
       ) : (
         <EyeOff className="h-4 w-4 mt-0.5 flex-shrink-0" />
       )}
