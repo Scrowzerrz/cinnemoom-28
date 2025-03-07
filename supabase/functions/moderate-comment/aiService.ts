@@ -16,6 +16,11 @@ export class AIService {
   
   constructor(apiKey: string) {
     this.apiKey = apiKey;
+    
+    if (!apiKey || apiKey.trim() === "") {
+      console.warn("AVISO: Chave da API de moderação não fornecida ao AIService");
+    }
+    
     this.promptService = new PromptService();
     this.apiService = new AIApiService(apiKey);
     this.responseProcessor = new ResponseProcessingService();
@@ -28,6 +33,12 @@ export class AIService {
    */
   public async moderateComment(commentText: string): Promise<ModerationResult> {
     console.log("Enviando comentário para moderação:", commentText.substring(0, 50) + (commentText.length > 50 ? '...' : ''));
+    
+    // Verificação de chave de API
+    if (!this.apiKey || this.apiKey.trim() === "") {
+      console.error("Não foi possível moderar: Chave de API não configurada");
+      return this.useFallbackVerification(commentText);
+    }
     
     // Verificação de tamanho do comentário
     if (commentText.length > 2000) {
@@ -53,8 +64,8 @@ export class AIService {
       
       // Verificar se os dados têm o formato esperado
       if (!data || !data.choices || !data.choices.length || !data.choices[0].message) {
-        console.error('Unexpected API response format:', JSON.stringify(data));
-        throw new Error('Invalid API response format');
+        console.error('Formato de resposta da API inesperado:', JSON.stringify(data));
+        throw new Error('Formato de resposta da API inválido');
       }
       
       let aiResponse = data.choices[0].message.content;
@@ -81,8 +92,8 @@ export class AIService {
         
         // Verificar novamente se os dados têm o formato esperado
         if (!data || !data.choices || !data.choices.length || !data.choices[0].message) {
-          console.error('Unexpected API response format in second attempt:', JSON.stringify(data));
-          throw new Error('Invalid API response format in second attempt');
+          console.error('Formato de resposta da API inesperado na segunda tentativa:', JSON.stringify(data));
+          throw new Error('Formato de resposta da API inválido na segunda tentativa');
         }
         
         aiResponse = data.choices[0].message.content;
@@ -98,40 +109,36 @@ export class AIService {
       
       // Fallback se todas as tentativas falharem
       if (!moderationResult) {
-        console.log("Todas as tentativas de processamento falharam. Usando verificação direta...");
-        
-        const containsOffensiveTerm = verificarTermosOfensivos(commentText);
-        
-        if (containsOffensiveTerm) {
-          return {
-            isAppropriate: false,
-            reason: "Linguagem ofensiva detectada. Comentários com palavrões ou termos discriminatórios não são permitidos."
-          };
-        } else {
-          return { 
-            isAppropriate: true, 
-            reason: "" 
-          };
-        }
+        return this.useFallbackVerification(commentText);
       }
       
       return moderationResult;
     } catch (error) {
       console.error('Erro ao processar moderação via IA:', error);
-      
-      // Fallback para verificação manual direta se a IA falhar
-      if (verificarTermosOfensivos(commentText)) {
-        return {
-          isAppropriate: false,
-          reason: "Linguagem ofensiva detectada. Comentários com palavrões não são permitidos."
-        };
-      }
-      
-      // Se não for possível verificar, permite o comentário mas registra o erro
-      return { 
-        isAppropriate: true, 
-        reason: "" 
+      return this.useFallbackVerification(commentText);
+    }
+  }
+  
+  /**
+   * Método de fallback para verificar comentários quando a IA falha
+   * @param commentText Texto do comentário para verificar
+   * @returns Resultado da moderação
+   */
+  private useFallbackVerification(commentText: string): ModerationResult {
+    console.log("Usando verificação direta de termos ofensivos (fallback)...");
+    
+    // Fallback para verificação manual direta
+    if (verificarTermosOfensivos(commentText)) {
+      return {
+        isAppropriate: false,
+        reason: "Linguagem ofensiva detectada. Comentários com palavrões ou termos discriminatórios não são permitidos."
       };
     }
+    
+    // Se não foi possível verificar, permite o comentário mas registra o erro
+    return { 
+      isAppropriate: true, 
+      reason: "" 
+    };
   }
 }

@@ -15,6 +15,10 @@ export class ModerationService {
   private aiService: AIService;
   
   constructor(apiKey: string) {
+    if (!apiKey || apiKey.trim() === "") {
+      console.warn("AVISO: Inicializando ModerationService sem chave de API válida");
+    }
+    
     this.aiService = new AIService(apiKey);
   }
   
@@ -24,6 +28,15 @@ export class ModerationService {
    * @returns Moderation result with appropriate status and reason
    */
   public async moderateComment(commentText: string): Promise<ModerationResult> {
+    console.log("Iniciando moderação de comentário");
+    
+    if (!commentText || commentText.trim() === "") {
+      return {
+        isAppropriate: false,
+        reason: "Comentário vazio ou inválido."
+      };
+    }
+    
     // Verificações iniciais diretas (rápidas)
     
     // 1. Verificar tamanho do comentário
