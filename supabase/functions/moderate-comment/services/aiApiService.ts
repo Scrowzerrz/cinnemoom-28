@@ -44,7 +44,8 @@ export class AIApiService {
               "content": prompt
             }
           ],
-          "max_tokens": 131000
+          "max_tokens": 1000,
+          "transformations": ["middle-out"] // Adicionando a transformação "middle-out" conforme recomendação da API
         })
       });
       
