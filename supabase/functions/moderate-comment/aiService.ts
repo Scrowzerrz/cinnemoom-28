@@ -1,9 +1,9 @@
 
-import { ModerationResult } from './models/moderationResult';
-import { PromptService } from './services/promptService';
-import { AIApiService } from './services/aiApiService';
-import { ResponseProcessingService } from './services/responseProcessingService';
-import { verificarTermosOfensivos } from './utils/textUtils';
+import { ModerationResult } from './models/moderationResult.ts';
+import { PromptService } from './services/promptService.ts';
+import { AIApiService } from './services/aiApiService.ts';
+import { ResponseProcessingService } from './services/responseProcessingService.ts';
+import { verificarTermosOfensivos } from './utils/textUtils.ts';
 
 /**
  * Service for AI-based content moderation

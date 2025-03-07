@@ -1,11 +1,12 @@
 
-import { AIService, ModerationResult } from './aiService';
-import { verificarTermosOfensivos } from './utils/textUtils';
+import { AIService } from './aiService.ts';
+import { ModerationResult } from './models/moderationResult.ts';
+import { verificarTermosOfensivos } from './utils/textUtils.ts';
 import { 
   verificarCaracteresRepetitivos, 
   verificarCapitalizacaoExcessiva, 
   verificarTamanhoComentario 
-} from './utils/validationUtils';
+} from './utils/validationUtils.ts';
 
 /**
  * Main service for comment moderation
