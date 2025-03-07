@@ -6,6 +6,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuFooter,
 } from '@/components/ui/dropdown-menu';
 import { useNotificacoes, Notificacao } from '@/hooks/useNotificacoes';
 import { formatDistanceToNow } from 'date-fns';
@@ -14,7 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNavigate } from 'react-router-dom';
 
 const NotificacaoBadge = () => {
-  const { notificacoes, naoLidas, marcarComoLida } = useNotificacoes();
+  const { notificacoes, naoLidas, marcarComoLida, marcarTodasComoLidas, isLoading } = useNotificacoes();
   const navigate = useNavigate();
 
   const handleClick = async (notificacao: Notificacao) => {
@@ -40,7 +42,7 @@ const NotificacaoBadge = () => {
     }
   };
 
-  // Função para renderizar ícone com base no tipo de notificação
+  // Renderizar ícone com base no tipo de notificação
   const renderNotificationIcon = (tipo: string) => {
     // Você pode adicionar mais ícones personalizados aqui para diferentes tipos de notificações
     return null; // Por padrão, não exibe ícone adicional
@@ -66,8 +68,27 @@ const NotificacaoBadge = () => {
         align="end"
         className="w-80 bg-movieDark border-movieGray/20"
       >
+        <div className="flex justify-between items-center px-4 py-2 border-b border-movieGray/20">
+          <h3 className="font-medium text-white">Notificações</h3>
+          {naoLidas > 0 && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-sm text-gray-400 hover:text-white"
+              onClick={() => marcarTodasComoLidas.mutate()}
+              disabled={marcarTodasComoLidas.isPending}
+            >
+              Marcar todas como lidas
+            </Button>
+          )}
+        </div>
+        
         <ScrollArea className="h-[300px]">
-          {notificacoes.length === 0 ? (
+          {isLoading ? (
+            <div className="p-4 text-center text-gray-400">
+              Carregando notificações...
+            </div>
+          ) : notificacoes.length === 0 ? (
             <div className="p-4 text-center text-gray-400">
               Nenhuma notificação
             </div>
@@ -75,13 +96,16 @@ const NotificacaoBadge = () => {
             notificacoes.map((notificacao) => (
               <DropdownMenuItem
                 key={notificacao.id}
-                className={`p-4 cursor-pointer ${!notificacao.lida ? 'bg-movieDark/50' : ''}`}
+                className={`p-4 cursor-pointer border-b border-movieGray/10 ${!notificacao.lida ? 'bg-movieDark/50' : ''}`}
                 onClick={() => handleClick(notificacao)}
               >
-                <div>
+                <div className="w-full">
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-medium text-white">
                       {notificacao.titulo}
+                      {!notificacao.lida && (
+                        <span className="ml-2 inline-block w-2 h-2 bg-movieRed rounded-full"></span>
+                      )}
                     </span>
                     <span className="text-xs text-gray-400">
                       {formatDistanceToNow(new Date(notificacao.created_at), {
@@ -98,6 +122,10 @@ const NotificacaoBadge = () => {
             ))
           )}
         </ScrollArea>
+        
+        <DropdownMenuFooter className="p-2 text-center text-xs text-gray-500">
+          Clique em uma notificação para visualizar o conteúdo
+        </DropdownMenuFooter>
       </DropdownMenuContent>
     </DropdownMenu>
   );

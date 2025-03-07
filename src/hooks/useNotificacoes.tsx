@@ -21,7 +21,7 @@ export const useNotificacoes = () => {
   const queryClient = useQueryClient();
 
   // Buscar notificações do usuário
-  const { data: notificacoes = [], isLoading } = useQuery({
+  const { data: notificacoes = [], isLoading, error, refetch } = useQuery({
     queryKey: ['notificacoes', perfil?.id],
     queryFn: async () => {
       if (!perfil?.id) return [];
@@ -44,6 +44,8 @@ export const useNotificacoes = () => {
       return data as Notificacao[];
     },
     enabled: !!perfil?.id,
+    refetchInterval: 30000, // Atualiza a cada 30 segundos
+    refetchOnWindowFocus: true, // Atualiza quando a janela recebe foco
   });
 
   // Marcar notificação como lida
@@ -67,11 +69,41 @@ export const useNotificacoes = () => {
       console.log('Notificação marcada como lida com sucesso');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
+      queryClient.invalidateQueries({ queryKey: ['notificacoes', perfil?.id] });
     },
     onError: (error) => {
       console.error('Erro na mutação de marcar como lida:', error);
       toast.error('Erro ao atualizar notificação');
+    },
+  });
+
+  // Marcar todas notificações como lidas
+  const marcarTodasComoLidas = useMutation({
+    mutationFn: async () => {
+      if (!perfil?.id) throw new Error('Usuário não autenticado');
+      
+      console.log('Marcando todas as notificações como lidas');
+      
+      const { error } = await supabase
+        .from('notificacoes')
+        .update({ lida: true })
+        .eq('user_id', perfil.id)
+        .eq('lida', false);
+
+      if (error) {
+        console.error('Erro ao marcar todas as notificações como lidas:', error);
+        throw error;
+      }
+      
+      console.log('Todas as notificações marcadas como lidas com sucesso');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notificacoes', perfil?.id] });
+      toast.success('Todas as notificações foram marcadas como lidas');
+    },
+    onError: (error) => {
+      console.error('Erro na mutação de marcar todas como lidas:', error);
+      toast.error('Erro ao atualizar notificações');
     },
   });
 
@@ -81,7 +113,10 @@ export const useNotificacoes = () => {
   return {
     notificacoes,
     isLoading,
+    error,
+    refetch,
     marcarComoLida,
+    marcarTodasComoLidas,
     naoLidas,
   };
 };

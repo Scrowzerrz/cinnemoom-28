@@ -170,30 +170,40 @@ export const alternarCurtidaComentario = async (
       // Se o autor do comentário não for o próprio usuário que está curtindo,
       // envia notificação para o autor do comentário
       if (comentario.usuario_id !== userId) {
-        // Buscar informações do usuário que curtiu para incluir na notificação
-        const { data: perfilUsuario } = await supabase
-          .from('perfis')
-          .select('nome')
-          .eq('id', userId)
-          .single();
-        
-        const nomeUsuario = perfilUsuario?.nome || 'Alguém';
-        
-        // Criar notificação para o autor do comentário
-        const { error: notificacaoError } = await supabase
-          .from('notificacoes')
-          .insert({
-            user_id: comentario.usuario_id,
-            titulo: 'Novo like em seu comentário',
-            mensagem: `${nomeUsuario} curtiu seu comentário`,
-            tipo: 'novo_like',
-            item_id: comentario.item_id,
-            item_tipo: comentario.item_tipo,
-            lida: false
-          });
-        
-        if (notificacaoError) {
-          console.error('Erro ao criar notificação de curtida:', notificacaoError);
+        try {
+          // Buscar informações do usuário que curtiu para incluir na notificação
+          const { data: perfilUsuario } = await supabase
+            .from('perfis')
+            .select('nome')
+            .eq('id', userId)
+            .single();
+          
+          const nomeUsuario = perfilUsuario?.nome || 'Alguém';
+          
+          console.log('Enviando notificação de curtida para:', comentario.usuario_id);
+          
+          // Criar notificação para o autor do comentário
+          const { data: notificacaoData, error: notificacaoError } = await supabase
+            .from('notificacoes')
+            .insert({
+              user_id: comentario.usuario_id,
+              titulo: 'Novo like em seu comentário',
+              mensagem: `${nomeUsuario} curtiu seu comentário`,
+              tipo: 'novo_like',
+              item_id: comentario.item_id,
+              item_tipo: comentario.item_tipo,
+              lida: false
+            })
+            .select();
+          
+          if (notificacaoError) {
+            console.error('Erro ao criar notificação de curtida:', notificacaoError);
+            // Não falhar a operação por causa da notificação
+          } else {
+            console.log('Notificação de curtida criada com sucesso:', notificacaoData);
+          }
+        } catch (notifError) {
+          console.error('Erro ao processar notificação:', notifError);
           // Não falhar a operação por causa da notificação
         }
       }
