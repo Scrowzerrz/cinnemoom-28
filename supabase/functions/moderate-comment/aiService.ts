@@ -1,3 +1,4 @@
+
 import { sanitizeJSONString, extractJSONPattern } from './utils.ts';
 
 // Interface para o resultado da moderação
@@ -60,7 +61,7 @@ export class AIService {
     return basePrompt + (retry ? retryFormat : format);
   }
   
-  // Chama a API OpenRouter para moderação com o modelo Gemini 2.0 Flash
+  // Chama a API OpenRouter para moderação com o modelo Qwen 32B
   private async callModerationAPI(prompt: string): Promise<Response> {
     return await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -71,14 +72,14 @@ export class AIService {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        "model": "google/gemini-2.0-flash-thinking-exp:free",
+        "model": "qwen/qwen-72b:free",
         "messages": [
           {
             "role": "user",
             "content": prompt
           }
         ],
-        "max_tokens": 500
+        "max_tokens": 90000
       })
     });
   }
@@ -205,6 +206,13 @@ export class AIService {
     }
 
     let data = await response.json();
+    
+    // Verificação adicional para garantir que data.choices existe e não é undefined
+    if (!data || !data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+      console.error('Resposta da API inválida ou incompleta:', JSON.stringify(data));
+      throw new Error('Resposta da API inválida ou incompleta');
+    }
+    
     let aiResponse = data.choices[0].message.content;
     console.log("Resposta IA (primeira tentativa):", aiResponse);
     
@@ -224,6 +232,13 @@ export class AIService {
       }
       
       data = await response.json();
+      
+      // Verificação adicional para garantir que data.choices existe na segunda tentativa
+      if (!data || !data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+        console.error('Resposta da API inválida ou incompleta (segunda tentativa):', JSON.stringify(data));
+        throw new Error('Resposta da API inválida ou incompleta na segunda tentativa');
+      }
+      
       aiResponse = data.choices[0].message.content;
       console.log("Resposta IA (segunda tentativa):", aiResponse);
       
