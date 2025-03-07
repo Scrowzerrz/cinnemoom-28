@@ -72,7 +72,7 @@ export class AIService {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        "model": "qwen/qwen-72b:free",
+        "model": "qwen/qwen-32b:free",
         "messages": [
           {
             "role": "user",
