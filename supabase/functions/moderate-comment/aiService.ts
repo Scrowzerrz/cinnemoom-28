@@ -1,4 +1,3 @@
-
 import { sanitizeJSONString, extractJSONPattern } from './utils.ts';
 
 // Interface para o resultado da moderação
@@ -61,7 +60,7 @@ export class AIService {
     return basePrompt + (retry ? retryFormat : format);
   }
   
-  // Chama a API OpenRouter para moderação com o modelo Gemini 2.0 Flash
+  // Chama a API OpenRouter para moderação com o modelo Deepseek R1
   private async callModerationAPI(prompt: string): Promise<Response> {
     return await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -72,14 +71,14 @@ export class AIService {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        "model": "google/gemini-2.0-flash-thinking-exp:free",
+        "model": "deepseek/deepseek-r1:free",
         "messages": [
           {
             "role": "user",
             "content": prompt
           }
         ],
-        "max_tokens": 66000
+        "max_tokens": 164000
       })
     });
   }
