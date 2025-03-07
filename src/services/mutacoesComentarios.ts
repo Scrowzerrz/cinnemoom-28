@@ -126,32 +126,84 @@ export const alternarCurtidaComentario = async (
   userId: string,
   curtido: boolean
 ) => {
-  if (curtido) {
-    const { error } = await supabase
-      .from('curtidas_comentarios')
-      .delete()
-      .eq('comentario_id', comentarioId)
-      .eq('usuario_id', userId);
-    
-    if (error) {
-      console.error('Erro ao remover curtida:', error);
-      throw new Error('Erro ao remover curtida');
+  try {
+    // Se estiver removendo a curtida
+    if (curtido) {
+      const { error } = await supabase
+        .from('curtidas_comentarios')
+        .delete()
+        .eq('comentario_id', comentarioId)
+        .eq('usuario_id', userId);
+      
+      if (error) {
+        console.error('Erro ao remover curtida:', error);
+        throw new Error('Erro ao remover curtida');
+      }
+    } 
+    // Se estiver adicionando uma curtida
+    else {
+      // Primeiro, obtenha informações do comentário para saber quem é o autor
+      const { data: comentario, error: comentarioError } = await supabase
+        .from('comentarios')
+        .select('usuario_id, item_id, item_tipo')
+        .eq('id', comentarioId)
+        .single();
+      
+      if (comentarioError) {
+        console.error('Erro ao obter informações do comentário:', comentarioError);
+        throw new Error('Erro ao curtir comentário');
+      }
+
+      // Adicionar a curtida
+      const { error } = await supabase
+        .from('curtidas_comentarios')
+        .insert({
+          comentario_id: comentarioId,
+          usuario_id: userId
+        });
+      
+      if (error) {
+        console.error('Erro ao adicionar curtida:', error);
+        throw new Error('Erro ao curtir comentário');
+      }
+
+      // Se o autor do comentário não for o próprio usuário que está curtindo,
+      // envia notificação para o autor do comentário
+      if (comentario.usuario_id !== userId) {
+        // Buscar informações do usuário que curtiu para incluir na notificação
+        const { data: perfilUsuario } = await supabase
+          .from('perfis')
+          .select('nome')
+          .eq('id', userId)
+          .single();
+        
+        const nomeUsuario = perfilUsuario?.nome || 'Alguém';
+        
+        // Criar notificação para o autor do comentário
+        const { error: notificacaoError } = await supabase
+          .from('notificacoes')
+          .insert({
+            user_id: comentario.usuario_id,
+            titulo: 'Novo like em seu comentário',
+            mensagem: `${nomeUsuario} curtiu seu comentário`,
+            tipo: 'novo_like',
+            item_id: comentario.item_id,
+            item_tipo: comentario.item_tipo,
+            lida: false
+          });
+        
+        if (notificacaoError) {
+          console.error('Erro ao criar notificação de curtida:', notificacaoError);
+          // Não falhar a operação por causa da notificação
+        }
+      }
     }
-  } else {
-    const { error } = await supabase
-      .from('curtidas_comentarios')
-      .insert({
-        comentario_id: comentarioId,
-        usuario_id: userId
-      });
     
-    if (error) {
-      console.error('Erro ao adicionar curtida:', error);
-      throw new Error('Erro ao curtir comentário');
-    }
+    return { id: comentarioId, novoEstado: !curtido };
+  } catch (error) {
+    console.error('Erro ao processar curtida:', error);
+    throw error;
   }
-  
-  return { id: comentarioId, novoEstado: !curtido };
 };
 
 export const trancarComentario = async (

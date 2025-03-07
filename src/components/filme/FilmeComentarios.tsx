@@ -2,6 +2,7 @@
 import { useComentarios } from '@/hooks/useComentarios';
 import FormularioComentario from '@/components/comentarios/FormularioComentario';
 import ListaComentarios from '@/components/comentarios/ListaComentarios';
+import { toast } from 'sonner';
 
 interface FilmeComentariosProps {
   filmeId: string;
@@ -35,6 +36,17 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
     alternarComentariosOcultos
   } = useComentarios(filmeId, 'filme');
 
+  // Função para lidar com likes
+  const handleCurtida = (id: string, curtido: boolean) => {
+    alternarCurtida.mutate({ id, curtido }, {
+      onSuccess: () => {
+        if (!curtido) {
+          toast.success('Curtida adicionada com sucesso!');
+        }
+      }
+    });
+  };
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <FormularioComentario 
@@ -57,7 +69,7 @@ const FilmeComentarios = ({ filmeId }: FilmeComentariosProps) => {
         onIniciarEdicao={iniciarEdicao}
         onCancelarEdicao={cancelarEdicao}
         onSubmitEdicao={(id) => editarComentario.mutate({ id, texto: textoEdicao })}
-        onCurtir={(id, curtido) => alternarCurtida.mutate({ id, curtido })}
+        onCurtir={handleCurtida}
         onExcluir={(id) => excluirComentario.mutate(id)}
         onAlternarVisibilidade={(id, visivel) => alternarVisibilidade.mutate({ id, visivel })}
         onTrancar={(id) => trancar.mutate(id)}

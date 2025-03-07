@@ -30,7 +30,20 @@ const NotificacaoBadge = () => {
     } else if (notificacao.tipo === 'admin_promocao') {
       // Para notificações de promoção a admin, redirecionar para o painel admin
       navigate('/admin');
+    } else if (notificacao.tipo === 'novo_like') {
+      // Para notificações de curtidas, navegar para o item onde o comentário foi curtido
+      if (notificacao.item_tipo === 'filme') {
+        navigate(`/movie/${notificacao.item_id}`);
+      } else if (notificacao.item_tipo === 'serie') {
+        navigate(`/serie/${notificacao.item_id}`);
+      }
     }
+  };
+
+  // Função para renderizar ícone com base no tipo de notificação
+  const renderNotificationIcon = (tipo: string) => {
+    // Você pode adicionar mais ícones personalizados aqui para diferentes tipos de notificações
+    return null; // Por padrão, não exibe ícone adicional
   };
 
   return (
