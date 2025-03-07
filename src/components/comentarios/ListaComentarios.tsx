@@ -1,9 +1,11 @@
 
-import { MessageSquare, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { MessageSquare, AlertCircle, ChevronDown } from 'lucide-react';
 import { Alert } from "@/components/ui/alert";
 import { AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Comentario } from '@/types/comentario.types';
 import ComentarioCard from './ComentarioCard';
 import ComentariosOcultosToggle from './ComentariosOcultosToggle';
@@ -44,6 +46,9 @@ interface ListaComentariosProps {
   alternarComentariosOcultos?: () => void;
 }
 
+// Quantidade inicial de comentários a exibir
+const COMENTARIOS_POR_PAGINA = 5;
+
 const ListaComentarios = ({
   comentarios,
   isLoading,
@@ -55,6 +60,18 @@ const ListaComentarios = ({
   ehAdmin,
   ...props
 }: ListaComentariosProps) => {
+  const [limiteComentarios, setLimiteComentarios] = useState(COMENTARIOS_POR_PAGINA);
+  
+  // Determina se existem mais comentários além do limite atual
+  const temMaisComentarios = comentarios.length > limiteComentarios;
+  
+  // Comentários a serem exibidos (limitados)
+  const comentariosExibidos = comentarios.slice(0, limiteComentarios);
+  
+  // Função para carregar mais comentários
+  const carregarMaisComentarios = () => {
+    setLimiteComentarios(limiteAnterior => limiteAnterior + COMENTARIOS_POR_PAGINA);
+  };
 
   if (error) {
     return (
@@ -127,7 +144,7 @@ const ListaComentarios = ({
         />
       )}
       
-      {comentarios.map(comentario => (
+      {comentariosExibidos.map(comentario => (
         <ComentarioCard
           key={comentario.id}
           comentario={comentario}
@@ -135,6 +152,18 @@ const ListaComentarios = ({
           {...props}
         />
       ))}
+      
+      {/* Botão de "Ver mais comentários" */}
+      {temMaisComentarios && (
+        <Button 
+          variant="outline" 
+          className="w-full text-gray-300 border-gray-700 hover:bg-gray-800 mt-2"
+          onClick={carregarMaisComentarios}
+        >
+          <ChevronDown className="h-4 w-4 mr-2" />
+          Ver mais comentários ({comentarios.length - limiteComentarios} restantes)
+        </Button>
+      )}
     </div>
   );
 };

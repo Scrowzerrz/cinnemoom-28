@@ -1,5 +1,9 @@
 
+import { useState } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Comentario } from '@/types/comentario.types';
 import { PerfilUsuario } from '@/hooks/auth/types';
 import CommentHeader from './CommentHeader';
@@ -39,6 +43,9 @@ interface ComentarioCardProps {
   perfilUsuario: PerfilUsuario | null;
 }
 
+// Quantidade inicial de respostas a exibir
+const RESPOSTAS_INICIAIS = 3;
+
 const ComentarioCard = ({
   comentario,
   usuarioLogado,
@@ -72,6 +79,29 @@ const ComentarioCard = ({
   const isAuthor = comentario.usuario_id === perfilUsuarioId;
   const isParentComment = !comentario.comentario_pai_id;
   const moderationReason = comentario.metadata?.moderationReason;
+  
+  // Estado para controlar a expansão das respostas
+  const [mostrarTodasRespostas, setMostrarTodasRespostas] = useState(false);
+  
+  // Determina se há muitas respostas que precisam ser colapsadas
+  const temMuitasRespostas = comentario.respostas && comentario.respostas.length > RESPOSTAS_INICIAIS;
+  
+  // Filtra as respostas com base no estado de expansão
+  const respostasExibidas = comentario.respostas && comentario.respostas.length > 0
+    ? mostrarTodasRespostas 
+      ? comentario.respostas 
+      : comentario.respostas.slice(0, RESPOSTAS_INICIAIS)
+    : [];
+    
+  // Quantidade de respostas ocultas
+  const respostasOcultas = comentario.respostas 
+    ? comentario.respostas.length - (mostrarTodasRespostas ? comentario.respostas.length : RESPOSTAS_INICIAIS)
+    : 0;
+    
+  // Função para alternar a visualização de todas as respostas
+  const alternarMostrarRespostas = () => {
+    setMostrarTodasRespostas(!mostrarTodasRespostas);
+  };
 
   return (
     <div 
@@ -79,7 +109,7 @@ const ComentarioCard = ({
         ${comentario.trancado ? 'border-red-500/30 bg-red-950/5' : ''} 
         ${!comentario.visivel && 'bg-amber-950/10'} 
         ${comentario.usuario_eh_admin ? 'border-blue-500/30 bg-blue-950/10' : ''} 
-        rounded-lg p-4 transition-all`}
+        rounded-lg p-3 md:p-4 transition-all overflow-hidden break-words`}
     >
       {!comentario.visivel && ehAdmin && (
         <VisibilityWarning 
@@ -97,18 +127,18 @@ const ComentarioCard = ({
         />
       )}
       
-      <div className="flex items-start gap-3">
-        <Avatar className="h-10 w-10 bg-gray-800">
+      <div className="flex items-start gap-2 md:gap-3">
+        <Avatar className="h-8 w-8 md:h-10 md:w-10 bg-gray-800 flex-shrink-0">
           {comentario.usuario_avatar ? (
             <AvatarImage src={comentario.usuario_avatar} alt={comentario.usuario_nome || 'Avatar'} />
           ) : (
-            <AvatarFallback className="bg-gray-800 text-white">
+            <AvatarFallback className="bg-gray-800 text-white text-xs md:text-sm">
               {comentario.usuario_nome ? getInitials(comentario.usuario_nome) : 'U'}
             </AvatarFallback>
           )}
         </Avatar>
         
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <CommentHeader 
             usuarioNome={comentario.usuario_nome || 'Usuário'}
             usuarioAvatar={comentario.usuario_avatar}
@@ -127,7 +157,7 @@ const ComentarioCard = ({
             />
           ) : (
             <>
-              <p className="text-gray-300 mt-2 break-words whitespace-pre-wrap">
+              <p className="text-gray-300 mt-2 break-words whitespace-pre-wrap text-sm md:text-base">
                 {comentario.texto}
               </p>
               
@@ -164,39 +194,66 @@ const ComentarioCard = ({
                 />
               )}
               
-              {comentario.respostas && comentario.respostas.length > 0 && (
-                <div className="mt-4 space-y-4 ml-8 border-l-2 border-gray-800 pl-4">
-                  {comentario.respostas.map(resposta => (
-                    <ComentarioCard
-                      key={resposta.id}
-                      comentario={resposta}
-                      usuarioLogado={usuarioLogado}
-                      perfilUsuarioId={perfilUsuarioId}
-                      ehAdmin={ehAdmin}
-                      editandoId={editandoId}
-                      textoEdicao={textoEdicao}
-                      setTextoEdicao={setTextoEdicao}
-                      onIniciarEdicao={onIniciarEdicao}
-                      onCancelarEdicao={onCancelarEdicao}
-                      onSubmitEdicao={onSubmitEdicao}
-                      onCurtir={onCurtir}
-                      onExcluir={onExcluir}
-                      onAlternarVisibilidade={onAlternarVisibilidade}
-                      onTrancar={onTrancar}
-                      onDestrancar={onDestrancar}
-                      onResponder={onResponder}
-                      onSubmitResposta={onSubmitResposta}
-                      isEditando={isEditando}
-                      isExcluindo={isExcluindo}
-                      isAlternandoVisibilidade={isAlternandoVisibilidade}
-                      isAlternandoCurtida={isAlternandoCurtida}
-                      isTrancando={isTrancando}
-                      isDestrancando={isDestrancando}
-                      isRespondendo={isRespondendo}
-                      comentarioRespondendoId={comentarioRespondendoId}
-                      perfilUsuario={perfilUsuario}
-                    />
-                  ))}
+              {respostasExibidas && respostasExibidas.length > 0 && (
+                <div className="mt-4 space-y-4 border-l-2 border-gray-800 pl-3 md:pl-4 ml-2 md:ml-4">
+                  {/* Área com scroll para respostas quando são muitas */}
+                  <ScrollArea className={respostasExibidas.length > 5 ? "max-h-[400px] pr-2" : ""}>
+                    <div className="space-y-4">
+                      {respostasExibidas.map(resposta => (
+                        <ComentarioCard
+                          key={resposta.id}
+                          comentario={resposta}
+                          usuarioLogado={usuarioLogado}
+                          perfilUsuarioId={perfilUsuarioId}
+                          ehAdmin={ehAdmin}
+                          editandoId={editandoId}
+                          textoEdicao={textoEdicao}
+                          setTextoEdicao={setTextoEdicao}
+                          onIniciarEdicao={onIniciarEdicao}
+                          onCancelarEdicao={onCancelarEdicao}
+                          onSubmitEdicao={onSubmitEdicao}
+                          onCurtir={onCurtir}
+                          onExcluir={onExcluir}
+                          onAlternarVisibilidade={onAlternarVisibilidade}
+                          onTrancar={onTrancar}
+                          onDestrancar={onDestrancar}
+                          onResponder={onResponder}
+                          onSubmitResposta={onSubmitResposta}
+                          isEditando={isEditando}
+                          isExcluindo={isExcluindo}
+                          isAlternandoVisibilidade={isAlternandoVisibilidade}
+                          isAlternandoCurtida={isAlternandoCurtida}
+                          isTrancando={isTrancando}
+                          isDestrancando={isDestrancando}
+                          isRespondendo={isRespondendo}
+                          comentarioRespondendoId={comentarioRespondendoId}
+                          perfilUsuario={perfilUsuario}
+                        />
+                      ))}
+                    </div>
+                  </ScrollArea>
+                  
+                  {/* Botão para ver mais respostas */}
+                  {temMuitasRespostas && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={alternarMostrarRespostas}
+                      className="text-xs text-gray-400 hover:text-white hover:bg-gray-800 w-full mt-2"
+                    >
+                      {mostrarTodasRespostas ? (
+                        <>
+                          <ChevronUp className="h-3 w-3 mr-1" />
+                          Mostrar menos respostas
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-3 w-3 mr-1" />
+                          Ver mais {respostasOcultas} respostas
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
               )}
             </>
