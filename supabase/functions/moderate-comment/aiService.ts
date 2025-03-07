@@ -72,14 +72,14 @@ export class AIService {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        "model": "deepseek/deepseek-r1:free",
+        "model": "qwen/qwq-32b:free",
         "messages": [
           {
             "role": "user",
             "content": prompt
           }
         ],
-        "max_tokens": 500
+        "max_tokens": 131000
       })
     });
   }
