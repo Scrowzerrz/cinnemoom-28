@@ -23,6 +23,7 @@ import Configuracoes from "./pages/Configuracoes";
 import RotaProtegida from "./components/RotaProtegida";
 import RotaAdmin from "./components/RotaAdmin";
 import PainelAdmin from "./pages/Admin/PainelAdmin";
+import AdminReAuthPage from "./pages/AdminReAuthPage"; // <<< NEW IMPORT
 import { AuthProvider } from "./hooks/auth/AuthProvider";
 
 // Create a client
@@ -52,6 +53,7 @@ const App: React.FC = () => {
             <Route path="/serie/:id" element={<DetalhesSerie />} />
             <Route path="/search" element={<Search />} />
             <Route path="/auth" element={<Autenticacao />} />
+            <Route path="/admin-reauth" element={<AdminReAuthPage />} /> {/* <<< NEW ROUTE */}
             <Route path="/perfil" element={
               <RotaProtegida>
                 <Perfil />
