@@ -168,8 +168,15 @@ const Navbar = () => {
         </div>
       </div>
       
-      {isMobile && mobileMenuOpen && (
-        <div className="bg-black/95 backdrop-blur-md border-t border-gray-800">
+      {/* Mobile Menu */}
+      {isMobile && (
+        <div 
+          className={`
+            bg-black/95 backdrop-blur-md border-t border-gray-800 
+            transition-all duration-300 ease-in-out overflow-hidden
+            ${mobileMenuOpen ? 'max-h-[calc(100vh-56px)] opacity-100' : 'max-h-0 opacity-0'}
+          `}
+        >
           <div className="container mx-auto py-4 px-4">
             <form onSubmit={handleSearchSubmit} className="relative mb-4">
               <input

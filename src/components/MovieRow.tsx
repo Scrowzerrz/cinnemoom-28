@@ -166,8 +166,8 @@ const LinhaFilmes = ({
           <Button
             variant="ghost"
             size="icon"
-            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 h-20 w-10 rounded-r-md bg-black/30 text-white backdrop-blur-sm hover:bg-black/50 transition-opacity duration-300 
-              ${showLeftArrow ? 'opacity-0 group-hover:opacity-100' : 'opacity-0 pointer-events-none'}`}
+            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 h-20 w-10 rounded-r-md bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition-opacity duration-300 
+              ${showLeftArrow ? 'opacity-70 hover:opacity-100' : 'opacity-0 pointer-events-none'}`}
             onClick={() => scroll('left')}
           >
             <ChevronLeft className="h-8 w-8" />
@@ -180,7 +180,7 @@ const LinhaFilmes = ({
             onScroll={handleScroll}
           >
             {movies.map((movie) => (
-              <div key={movie.id} className="flex-none w-[180px]">
+              <div key={movie.id} className="flex-none w-[160px] sm:w-[180px] md:w-[200px]">
                 <MovieCard {...movie} />
               </div>
             ))}
@@ -190,8 +190,8 @@ const LinhaFilmes = ({
           <Button
             variant="ghost"
             size="icon"
-            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 h-20 w-10 rounded-l-md bg-black/30 text-white backdrop-blur-sm hover:bg-black/50 transition-opacity duration-300 
-              ${showRightArrow ? 'opacity-0 group-hover:opacity-100' : 'opacity-0 pointer-events-none'}`}
+            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 h-20 w-10 rounded-l-md bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition-opacity duration-300 
+              ${showRightArrow ? 'opacity-70 hover:opacity-100' : 'opacity-0 pointer-events-none'}`}
             onClick={() => scroll('right')}
           >
             <ChevronRight className="h-8 w-8" />

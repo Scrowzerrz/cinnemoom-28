@@ -60,7 +60,7 @@ const CartaoFilme = ({
           />
         </div>
         
-        <div className="absolute top-2 right-10 z-20 flex items-center bg-black/40 rounded-sm px-1.5 py-0.5">
+        <div className="absolute top-2 right-14 z-20 flex items-center bg-black/40 rounded-sm px-1.5 py-0.5">
           <Star className="h-3 w-3 fill-movieRed stroke-movieRed mr-1" />
           <span className="text-white text-xs font-medium">{rating}</span>
         </div>
@@ -78,46 +78,17 @@ const CartaoFilme = ({
           </div>
         </div>
         
-        <div className={`absolute inset-0 bg-black/80 flex flex-col justify-between p-4 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="w-full">
+        <div className={`absolute inset-0 bg-black/80 flex flex-col justify-center items-center p-4 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="w-full max-w-[90%]"> {/* Constrains button width slightly for aesthetics */}
             <Button 
               variant="default" 
               size="sm" 
-              className="w-full mb-3 bg-movieRed hover:bg-movieRed/90 text-white font-medium flex items-center justify-center gap-1.5 rounded-sm"
+              className="w-full bg-movieRed hover:bg-movieRed/90 text-white font-medium flex items-center justify-center gap-1.5 rounded-sm"
+              // onClick={(e) => { e.preventDefault(); navigate(`${detailsPath}?assistir=true`); }} // Optional: Direct navigation to watch page
             >
               <Play className="h-4 w-4" strokeWidth={2} /> 
               <span className="ml-1">Assistir</span>
             </Button>
-            
-            <div className="flex justify-between w-full gap-2">
-              <Link to={detailsPath} className="w-full">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full rounded-sm bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
-                >
-                  <Info className="h-4 w-4" strokeWidth={2} />
-                  <span className="ml-1">Info</span>
-                </Button>
-              </Link>
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="text-white font-semibold text-center mt-2 text-sm line-clamp-2">{title}</h3>
-            <div className="flex items-center justify-center text-xs text-white/70 mt-1">
-              <span>{year}</span>
-              {duration && (
-                <>
-                  <span className="mx-1">•</span>
-                  <span>{duration}</span>
-                </>
-              )}
-            </div>
-            <div className="flex items-center justify-center mt-1.5">
-              <Star className="h-4 w-4 fill-movieRed stroke-movieRed mr-1" />
-              <span className="text-white text-xs font-medium">{rating}</span>
-            </div>
           </div>
         </div>
       </div>

@@ -61,7 +61,7 @@ const Hero = ({
         }}
       >
         {/* Enhanced gradient overlay com mais profundidade */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-transparent"></div>
+        <div className="absolute inset-0 bg-hero-gradient"></div>
       </div>
       
       {/* Hero Content */}
@@ -105,14 +105,14 @@ const Hero = ({
           {/* Buttons with enhanced styling */}
           <div className="flex flex-wrap gap-4">
             <Button 
-              className="bg-white text-black hover:bg-white/90 flex gap-2 items-center rounded-sm px-8 py-6 text-base font-semibold transition-transform duration-300 hover:scale-105"
+              className="bg-white text-black hover:bg-white/90 flex gap-2 items-center rounded-sm px-6 py-4 md:px-8 md:py-6 text-base font-semibold transition-transform duration-300 hover:scale-105"
               onClick={assistir}
             >
               <Play className="h-5 w-5 fill-black" /> Assistir
             </Button>
             <Button 
               variant="outline" 
-              className="border-white/30 text-white bg-black/30 backdrop-blur-sm hover:bg-black/50 flex gap-2 items-center rounded-sm px-8 py-6 text-base font-semibold transition-transform duration-300 hover:scale-105"
+              className="border-white/30 text-white bg-black/30 backdrop-blur-sm hover:bg-black/50 flex gap-2 items-center rounded-sm px-6 py-4 md:px-8 md:py-6 text-base font-semibold transition-transform duration-300 hover:scale-105"
               onClick={irParaDetalhes}
             >
               <Info className="h-5 w-5" /> Mais Informações
@@ -121,7 +121,7 @@ const Hero = ({
               <FavoritoButton
                 itemId={id}
                 tipo={type === 'movie' ? 'filme' : 'serie'}
-                className="border-white/30 bg-black/30 backdrop-blur-sm hover:bg-black/50 flex gap-2 items-center rounded-sm w-12 h-[56px] text-base font-semibold transition-transform duration-300 hover:scale-105"
+                className="border-white/30 bg-black/30 backdrop-blur-sm hover:bg-black/50 flex gap-2 items-center rounded-sm w-12 h-12 md:h-[56px] text-base font-semibold transition-transform duration-300 hover:scale-105"
               />
             )}
           </div>

@@ -114,7 +114,7 @@ const Index = () => {
       <main>
         {renderHero()}
         
-        <div className="py-4">
+        <div className="py-8">
           <LinhaFilmes 
             title="Filmes" 
             movies={movies ? movies.map(movie => ({...movie, type: 'movie'})) : []}

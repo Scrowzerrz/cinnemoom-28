@@ -24,28 +24,28 @@ const Footer = () => {
             <div>
               <h3 className="text-white font-semibold mb-4">Navegação</h3>
               <ul className="space-y-2">
-                <li><Link to="/" className="text-movieGray hover:text-white transition-colors">Início</Link></li>
-                <li><Link to="/movies" className="text-movieGray hover:text-white transition-colors">Filmes</Link></li>
-                <li><Link to="/series" className="text-movieGray hover:text-white transition-colors">Séries</Link></li>
-                <li><Link to="/categories" className="text-movieGray hover:text-white transition-colors">Categorias</Link></li>
+                <li><Link to="/" className="text-movieGray hover:text-white transition-colors inline-block py-1">Início</Link></li>
+                <li><Link to="/movies" className="text-movieGray hover:text-white transition-colors inline-block py-1">Filmes</Link></li>
+                <li><Link to="/series" className="text-movieGray hover:text-white transition-colors inline-block py-1">Séries</Link></li>
+                <li><Link to="/categories" className="text-movieGray hover:text-white transition-colors inline-block py-1">Categorias</Link></li>
               </ul>
             </div>
             
             <div>
               <h3 className="text-white font-semibold mb-4">Legal</h3>
               <ul className="space-y-2">
-                <li><Link to="/terms" className="text-movieGray hover:text-white transition-colors">Termos de Uso</Link></li>
-                <li><Link to="/privacy" className="text-movieGray hover:text-white transition-colors">Política de Privacidade</Link></li>
-                <li><Link to="/dmca" className="text-movieGray hover:text-white transition-colors">DMCA</Link></li>
+                <li><Link to="/terms" className="text-movieGray hover:text-white transition-colors inline-block py-1">Termos de Uso</Link></li>
+                <li><Link to="/privacy" className="text-movieGray hover:text-white transition-colors inline-block py-1">Política de Privacidade</Link></li>
+                <li><Link to="/dmca" className="text-movieGray hover:text-white transition-colors inline-block py-1">DMCA</Link></li>
               </ul>
             </div>
             
             <div>
               <h3 className="text-white font-semibold mb-4">Ajuda</h3>
               <ul className="space-y-2">
-                <li><Link to="/faq" className="text-movieGray hover:text-white transition-colors">FAQ</Link></li>
-                <li><Link to="/contact" className="text-movieGray hover:text-white transition-colors">Contato</Link></li>
-                <li><Link to="/about" className="text-movieGray hover:text-white transition-colors">Sobre</Link></li>
+                <li><Link to="/faq" className="text-movieGray hover:text-white transition-colors inline-block py-1">FAQ</Link></li>
+                <li><Link to="/contact" className="text-movieGray hover:text-white transition-colors inline-block py-1">Contato</Link></li>
+                <li><Link to="/about" className="text-movieGray hover:text-white transition-colors inline-block py-1">Sobre</Link></li>
               </ul>
             </div>
           </div>
