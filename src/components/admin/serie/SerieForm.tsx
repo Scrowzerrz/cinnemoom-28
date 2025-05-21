@@ -13,6 +13,8 @@ import { SerieDescricao } from "./SerieDescricao";
 import { SerieTemporadas } from "./SerieTemporadas";
 import { SerieSubmitButtons } from "./SerieSubmitButtons";
 import { BuscadorTMDBSeries } from "./BuscadorTMDBSeries";
+import { PasswordConfirmationModal } from '@/components/modals/PasswordConfirmationModal'; // Uncommented
+import { useAuth } from '@/hooks/useAuth'; // Added
 
 interface SerieFormProps {
   onSuccess: () => void;
@@ -29,7 +31,10 @@ export function SerieForm({
   isEditing = false,
   mostrarBuscadorTMDB = true 
 }: SerieFormProps) {
+  const { session } = useAuth(); // Added
   const [loading, setLoading] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [formDataToSubmit, setFormDataToSubmit] = useState<SerieFormData | null>(null);
   const [temporadasInfo, setTemporadasInfo] = useState<any[]>([]);
 
   const form = useForm<SerieFormData>({
@@ -40,7 +45,8 @@ export function SerieForm({
     },
   });
 
-  const onSubmit = async (data: SerieFormData) => {
+  // Renamed from onSubmit, now takes data as argument
+  const executeSerieUpdate = async (data: SerieFormData) => {
     setLoading(true);
     try {
       console.log("Enviando dados da série:", data);
@@ -168,6 +174,18 @@ export function SerieForm({
     }
   };
 
+  // New handler for the form's submit event
+  const handleFormSubmit = async (data: SerieFormData) => {
+    if (isEditing && serieId) { // Only prompt for password if editing an existing series
+      setFormDataToSubmit(data);
+      setIsPasswordModalOpen(true);
+      // setLoading(true) will be called by the modal's onConfirm before executeSerieUpdate
+    } else {
+      // For new series, submit directly
+      await executeSerieUpdate(data);
+    }
+  };
+
   const preencherDadosSerie = (dados: Partial<SerieFormData>, temporadas?: any[]) => {
     Object.entries(dados).forEach(([campo, valor]) => {
       form.setValue(campo as keyof SerieFormData, valor as any);
@@ -179,10 +197,11 @@ export function SerieForm({
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {mostrarBuscadorTMDB && (
-          <BuscadorTMDBSeries onSerieEncontrada={preencherDadosSerie} />
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+          {mostrarBuscadorTMDB && (
+            <BuscadorTMDBSeries onSerieEncontrada={preencherDadosSerie} />
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <SerieInfoBasica form={form} />
@@ -200,7 +219,50 @@ export function SerieForm({
           onCancel={onSuccess}
           isEditing={isEditing}
         />
-      </form>
-    </Form>
+        </form>
+      </Form>
+
+      {isPasswordModalOpen && formDataToSubmit && (
+        <PasswordConfirmationModal
+          isOpen={isPasswordModalOpen}
+          message="Para sua segurança, por favor insira sua senha para confirmar as alterações na série."
+          onClose={() => {
+            setIsPasswordModalOpen(false);
+            setFormDataToSubmit(null);
+          }}
+          onConfirm={async (enteredPassword: string) => {
+            if (!session?.user?.email) {
+              toast.error("Usuário não autenticado. Não é possível verificar a senha.");
+              throw new Error("Usuário não autenticado.");
+            }
+            if (!formDataToSubmit) {
+               toast.error("Nenhum dado de formulário para submeter.");
+               throw new Error("Dados do formulário ausentes.");
+            }
+
+            // Verify password with Supabase
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email: session.user.email,
+              password: enteredPassword,
+            });
+
+            if (signInError) {
+              console.error("Erro na verificação de senha:", signInError);
+              if (signInError.message === "Invalid login credentials") {
+                throw new Error("Senha incorreta. Por favor, tente novamente.");
+              }
+              throw new Error("Falha na verificação da senha.");
+            }
+
+            // Password is correct, proceed with series update
+            await executeSerieUpdate(formDataToSubmit);
+            // executeSerieUpdate calls onSuccess, which typically handles dialog closing.
+            // We also need to ensure this password modal is closed.
+            setIsPasswordModalOpen(false);
+            setFormDataToSubmit(null);
+          }}
+        />
+      )}
+    </>
   );
 }

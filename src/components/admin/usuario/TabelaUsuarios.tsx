@@ -22,10 +22,11 @@ interface Usuario {
 interface TabelaUsuariosProps {
   usuarios: Usuario[];
   carregando: boolean;
-  alternarAdmin: (usuario: Usuario) => Promise<void>;
+  alternarAdmin: (usuario: Usuario) => void; // Signature in parent changes, TabelaUsuarios still calls it with 'usuario'
+  onDeleteUserRequested: (userId: string, userName?: string) => void; // New prop
 }
 
-export function TabelaUsuarios({ usuarios, carregando, alternarAdmin }: TabelaUsuariosProps) {
+export function TabelaUsuarios({ usuarios, carregando, alternarAdmin, onDeleteUserRequested }: TabelaUsuariosProps) {
   console.log("Renderizando tabela de usuários com", usuarios.length, "usuários:", usuarios);
   
   return (
@@ -117,6 +118,7 @@ export function TabelaUsuarios({ usuarios, carregando, alternarAdmin }: TabelaUs
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         className="hover:bg-red-900/30 text-red-400 cursor-pointer flex items-center gap-2"
+                        onClick={() => onDeleteUserRequested(usuario.id, usuario.nome || usuario.email)}
                       >
                         <Trash2 className="h-4 w-4" />
                         <span>Excluir conta</span>

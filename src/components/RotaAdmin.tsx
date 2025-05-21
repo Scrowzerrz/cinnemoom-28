@@ -1,5 +1,5 @@
 
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAdmin } from '@/hooks/useAdmin';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
@@ -10,21 +10,15 @@ interface RotaAdminProps {
   redirectTo?: string;
 }
 
+const ADMIN_REAUTH_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+const ADMIN_REAUTH_TIMESTAMP_KEY = 'adminReAuthTimestamp';
+
 const RotaAdmin = ({ children, redirectTo = '/' }: RotaAdminProps) => {
+  const location = useLocation(); // Add this
   const { session, loading: authLoading } = useAuth();
   const { ehAdmin, carregando: adminLoading } = useAdmin();
   
   const carregando = authLoading || adminLoading;
-
-  // Redirecionar para autenticação se não estiver logado
-  if (!carregando && !session) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  // Redirecionar para página principal se não for admin
-  if (!carregando && !ehAdmin) {
-    return <Navigate to={redirectTo} replace />;
-  }
 
   // Mostrar indicador de carregamento
   if (carregando) {
@@ -39,6 +33,25 @@ const RotaAdmin = ({ children, redirectTo = '/' }: RotaAdminProps) => {
   }
 
   // Renderizar o conteúdo para admins
+  if (!carregando && !session) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!carregando && !ehAdmin) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  // ---> START NEW RE-AUTH LOGIC <---
+  const adminReAuthTimestamp = sessionStorage.getItem(ADMIN_REAUTH_TIMESTAMP_KEY);
+  const needsReAuth = !adminReAuthTimestamp || (Date.now() - parseInt(adminReAuthTimestamp)) > ADMIN_REAUTH_TIMEOUT_MS;
+
+  if (needsReAuth) {
+    // Construct the redirect URL carefully, preserving existing search params if any
+    const redirectUrl = location.pathname + location.search;
+    return <Navigate to={`/admin-reauth?redirect=${encodeURIComponent(redirectUrl)}`} replace />;
+  }
+  // ---> END NEW RE-AUTH LOGIC <---
+
   return <>{children}</>;
 };
 
