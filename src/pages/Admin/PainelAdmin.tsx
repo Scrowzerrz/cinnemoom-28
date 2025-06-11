@@ -9,6 +9,7 @@ import {
   Users, 
   LogOut, 
   ChevronLeft,
+  ChevronRight,
   Menu,
   X
 } from 'lucide-react';
@@ -34,7 +35,22 @@ const PainelAdmin = () => {
   const navigate = useNavigate();
   const [abaAtiva, setAbaAtiva] = useState("dashboard");
   const [sidebarAberta, setSidebarAberta] = useState(false);
+  const [sidebarMinimizada, setSidebarMinimizada] = useState(false);
   const isMobile = useMobile();
+  
+  // Detectar zoom e viewport pequeno
+  const [isSmallViewport, setIsSmallViewport] = useState(false);
+
+  useEffect(() => {
+    const checkViewport = () => {
+      setIsSmallViewport(window.innerWidth < 1280); // XL breakpoint
+    };
+    
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+    
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
 
   const menuItems: MenuItem[] = [
     { id: "dashboard", label: "Dashboard", icon: Home, component: DashboardAdmin },
@@ -59,168 +75,222 @@ const PainelAdmin = () => {
 
   const handleMenuClick = (itemId: string) => {
     setAbaAtiva(itemId);
-    if (isMobile) {
+    // Fechar sidebar em viewport pequeno após seleção
+    if (isSmallViewport) {
       setSidebarAberta(false);
     }
   };
 
+  const toggleSidebarMinimizada = () => {
+    setSidebarMinimizada(!sidebarMinimizada);
+  };
+
   const ComponenteAtivo = menuItems.find(item => item.id === abaAtiva)?.component || DashboardAdmin;
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-movieDarkBlue border-r border-gray-800">
-      <div className="p-6 border-b border-gray-800">
-        <div className="flex items-center space-x-2">
-          <span className="text-xl font-bold text-white">Cineflix</span>
-          <div className="w-3 h-3 bg-movieRed rotate-45 relative">
-            <div className="absolute inset-0 flex items-center justify-center -rotate-45">
-              <span className="text-white text-[10px] font-bold">+</span>
+  const SidebarContent = ({ minimized = false }: { minimized?: boolean }) => (
+    <div className={cn(
+      "flex flex-col h-full bg-movieDarkBlue border-r border-gray-800 min-h-screen transition-all duration-300",
+      minimized ? "w-16" : "w-full"
+    )}>
+      {/* Header com logo responsivo */}
+      <div className="p-4 border-b border-gray-800 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div className={cn("flex items-center", minimized ? "justify-center w-full" : "space-x-2")}>
+            {!minimized && <span className="text-lg font-bold text-white">Cineflix</span>}
+            <div className="w-3 h-3 bg-movieRed rotate-45 relative flex-shrink-0">
+              <div className="absolute inset-0 flex items-center justify-center -rotate-45">
+                <span className="text-white text-[10px] font-bold">+</span>
+              </div>
             </div>
+            {!minimized && <span className="text-sm font-semibold text-gray-300">Admin</span>}
           </div>
-          <span className="text-sm font-semibold text-gray-300">Admin</span>
+          {!isSmallViewport && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSidebarMinimizada}
+              className="text-gray-400 hover:text-white p-1"
+            >
+              {minimized ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
+          )}
         </div>
       </div>
       
-      <nav className="flex-1 p-4">
-        <div className="space-y-2">
+      {/* Navigation com scroll interno */}
+      <nav className="flex-1 p-2 overflow-y-auto">
+        <div className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
                 onClick={() => handleMenuClick(item.id)}
+                title={minimized ? item.label : undefined}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors",
+                  "w-full flex items-center rounded-lg transition-all duration-200",
+                  "focus:outline-none focus:ring-2 focus:ring-movieRed focus:ring-offset-2 focus:ring-offset-movieDarkBlue",
+                  minimized ? "justify-center p-3" : "gap-3 px-3 py-3",
                   abaAtiva === item.id
-                    ? "bg-movieRed text-white"
-                    : "text-gray-300 hover:text-white hover:bg-gray-800"
+                    ? "bg-movieRed text-white shadow-md"
+                    : "text-gray-300 hover:text-white hover:bg-gray-800/50"
                 )}
               >
-                <Icon className="h-5 w-5" />
-                <span>{item.label}</span>
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                {!minimized && <span className="truncate text-sm font-medium">{item.label}</span>}
               </button>
             );
           })}
         </div>
       </nav>
       
-      <div className="p-4 border-t border-gray-800 space-y-2">
+      {/* Footer actions */}
+      <div className="p-2 border-t border-gray-800 space-y-1 flex-shrink-0">
         <Button 
           variant="ghost" 
           size="sm"
-          className="w-full justify-start text-gray-300 hover:text-white"
+          title={minimized ? "Voltar ao site" : undefined}
+          className={cn(
+            "w-full text-gray-300 hover:text-white text-sm",
+            minimized ? "justify-center p-3" : "justify-start"
+          )}
           onClick={handleVoltarSite}
         >
-          <ChevronLeft className="h-4 w-4 mr-2" />
-          Voltar ao site
+          <ChevronLeft className="h-4 w-4 flex-shrink-0" />
+          {!minimized && <span className="ml-2 truncate">Voltar ao site</span>}
         </Button>
         
         <Button 
           variant="ghost" 
           size="sm"
-          className="w-full justify-start text-gray-300 hover:text-white"
+          title={minimized ? "Sair" : undefined}
+          className={cn(
+            "w-full text-gray-300 hover:text-white text-sm",
+            minimized ? "justify-center p-3" : "justify-start"
+          )}
           onClick={handleLogout}
         >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sair
+          <LogOut className="h-4 w-4 flex-shrink-0" />
+          {!minimized && <span className="ml-2 truncate">Sair</span>}
         </Button>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-movieDark text-white flex">
-      {/* Desktop Sidebar */}
-      {!isMobile && (
-        <div className="w-64 hidden lg:block">
-          <SidebarContent />
-        </div>
-      )}
-
-      {/* Mobile Header and Sheet */}
-      {isMobile && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-movieDarkBlue border-b border-gray-800 p-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <Sheet open={sidebarAberta} onOpenChange={setSidebarAberta}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-64">
-                  <SidebarContent />
-                </SheetContent>
-              </Sheet>
-              
-              <span className="text-lg font-bold text-white">Cineflix Admin</span>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={handleVoltarSite}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
+    <div className="min-h-screen bg-movieDark text-white overflow-hidden">
+      {/* Universal Hamburger Menu - Always visible and accessible */}
       <div className={cn(
-        "flex-1 flex flex-col",
-        isMobile ? "pt-16" : ""
+        "fixed top-4 z-50 transition-all duration-300",
+        isSmallViewport ? "left-4" : sidebarMinimizada ? "left-20" : "left-4"
       )}>
-        {/* Desktop Header */}
-        {!isMobile && (
-          <header className="bg-movieDarkBlue border-b border-gray-800 p-6">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold text-white">
-                {menuItems.find(item => item.id === abaAtiva)?.label || "Dashboard"}
-              </h1>
+        <Sheet open={sidebarAberta} onOpenChange={setSidebarAberta}>
+          <SheetTrigger asChild>
+            <Button 
+              variant="default" 
+              size="sm"
+              className="bg-movieRed hover:bg-movieRed/80 text-white shadow-xl border border-movieRed/50 backdrop-blur-sm"
+            >
+              <Menu className="h-4 w-4" />
+              <span className="sr-only">Abrir menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-80 max-w-[90vw] border-movieRed/20">
+            <SidebarContent />
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      <div className="flex min-h-screen relative">
+        {/* Desktop Sidebar - Conditional visibility and width */}
+        <div className={cn(
+          "hidden xl:flex transition-all duration-300 flex-shrink-0 relative z-10",
+          sidebarMinimizada ? "xl:w-16" : "xl:w-72"
+        )}>
+          <SidebarContent minimized={sidebarMinimizada} />
+        </div>
+
+        {/* Main Content Area with dynamic padding */}
+        <div className={cn(
+          "flex-1 flex flex-col min-w-0 transition-all duration-300",
+          !isSmallViewport && !sidebarMinimizada ? "xl:ml-0" : ""
+        )}>
+          {/* Compact Top Header Bar */}
+          <header className="bg-movieDarkBlue/95 backdrop-blur-sm border-b border-gray-800/50 px-4 py-2 sm:px-6 sm:py-3 relative z-20">
+            <div className="flex items-center justify-between min-h-[3rem]">
+              <div className="flex items-center gap-4 min-w-0 pl-12 xl:pl-4">
+                {/* Page Title with breadcrumb */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-sm text-gray-400 mb-1">
+                    <span>Admin</span>
+                    <ChevronRight className="h-3 w-3" />
+                    <span className="text-movieRed">{menuItems.find(item => item.id === abaAtiva)?.label}</span>
+                  </div>
+                  <h1 className="text-lg sm:text-xl font-bold text-white truncate">
+                    {menuItems.find(item => item.id === abaAtiva)?.label || "Dashboard"}
+                  </h1>
+                </div>
+              </div>
               
-              <div className="flex items-center gap-3">
+              {/* Compact Action Buttons */}
+              <div className="flex items-center gap-1 flex-shrink-0">
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  className="text-gray-300 hover:text-white"
+                  className="text-gray-300 hover:text-white p-2"
                   onClick={handleVoltarSite}
+                  title="Voltar ao site"
                 >
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  Voltar ao site
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden lg:inline ml-1 text-xs">Voltar</span>
                 </Button>
                 
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  className="text-gray-300 hover:text-white"
+                  className="text-gray-300 hover:text-white p-2"
                   onClick={handleLogout}
+                  title="Sair do painel"
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sair
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden lg:inline ml-1 text-xs">Sair</span>
                 </Button>
               </div>
             </div>
           </header>
-        )}
 
-        {/* Content Area */}
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
-          <div className="max-w-7xl mx-auto">
-            <ComponenteAtivo />
-          </div>
-        </main>
+          {/* Scrollable Content Area */}
+          <main className="flex-1 overflow-auto relative">
+            <div className="p-4 sm:p-6 lg:p-8 pb-8 min-h-full">
+              <div className="max-w-none mx-auto">
+                <ComponenteAtivo />
+              </div>
+            </div>
+          </main>
+        </div>
       </div>
+
+      {/* Mobile-only bottom navigation for quick access */}
+      {isSmallViewport && (
+        <div className="fixed bottom-4 right-4 z-40 flex gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            className="bg-movieDarkBlue/90 hover:bg-movieDarkBlue text-white shadow-lg backdrop-blur-sm border border-gray-600"
+            onClick={handleVoltarSite}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            className="bg-movieDarkBlue/90 hover:bg-movieDarkBlue text-white shadow-lg backdrop-blur-sm border border-gray-600"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
