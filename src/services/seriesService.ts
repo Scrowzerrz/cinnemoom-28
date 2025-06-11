@@ -4,6 +4,126 @@ import { MovieCardProps } from '@/components/MovieCard';
 import { mapToMovieCard } from './utils/movieUtils';
 import { SerieDB, SerieDetalhes, TemporadaDB, EpisodioDB } from './types/movieTypes';
 
+// Função para buscar séries com novos episódios baseada na data de criação dos episódios
+const fetchSeriesComNovosEpisodios = async (): Promise<MovieCardProps[]> => {
+  console.log('Buscando séries com novos episódios nos últimos 30 dias...');
+  
+  try {
+    // Calcular data limite para episódios recentes
+    const trintaDiasAtras = new Date();
+    trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+    const dataLimite = trintaDiasAtras.toISOString();
+    
+    // Buscar episódios criados recentemente
+    const { data: episodiosRecentes, error: episodiosError } = await supabase
+      .from('episodios')
+      .select(`
+        id,
+        created_at,
+        temporada_id,
+        temporadas(
+          id,
+          serie_id
+        )
+      `)
+      .gte('created_at', dataLimite)
+      .order('created_at', { ascending: false });
+    
+    if (episodiosError) {
+      console.error('Erro ao buscar episódios recentes:', episodiosError);
+      return await buscarSeriesMaisRecentes();
+    }
+    
+    if (!episodiosRecentes || episodiosRecentes.length === 0) {
+      console.log('Nenhum episódio encontrado nos últimos 30 dias');
+      return await buscarSeriesMaisRecentes();
+    }
+    
+    // Extrair IDs únicos de séries ordenados pela data do episódio mais recente
+    const serieIds = new Map<string, number>();
+    
+    episodiosRecentes.forEach((episodio: any) => {
+      const serieId = episodio.temporadas?.serie_id;
+      const dataEpisodio = new Date(episodio.created_at).getTime();
+      
+      if (serieId && (!serieIds.has(serieId) || serieIds.get(serieId)! < dataEpisodio)) {
+        serieIds.set(serieId, dataEpisodio);
+      }
+    });
+    
+    // Ordenar série IDs por data do último episódio e limitar
+    const serieIdsOrdenados = Array.from(serieIds.entries())
+      .sort((a, b) => b[1] - a[1]) // Ordenar por timestamp decrescente
+      .slice(0, 20)
+      .map(entry => entry[0]);
+    
+    if (serieIdsOrdenados.length === 0) {
+      console.log('Nenhuma série encontrada com episódios recentes');
+      return await buscarSeriesMaisRecentes();
+    }
+    
+    // Buscar dados completos das séries
+    const { data: seriesCompletas, error: seriesError } = await supabase
+      .from('series')
+      .select('*')
+      .in('id', serieIdsOrdenados);
+    
+    if (seriesError) {
+      console.error('Erro ao buscar dados das séries:', seriesError);
+      return await buscarSeriesMaisRecentes();
+    }
+    
+    if (!seriesCompletas || seriesCompletas.length === 0) {
+      return await buscarSeriesMaisRecentes();
+    }
+    
+    // Ordenar séries de acordo com a ordem dos episódios mais recentes
+    const seriesOrdenadas = serieIdsOrdenados
+      .map(id => seriesCompletas.find(serie => serie.id === id))
+      .filter(Boolean);
+    
+    console.log(`Encontradas ${seriesOrdenadas.length} séries com novos episódios`);
+    
+    return seriesOrdenadas.map(serie => {
+      const serieComPlayerUrl = {
+        ...serie,
+        player_url: ''
+      };
+      return mapToMovieCard(serieComPlayerUrl as any);
+    });
+    
+  } catch (error) {
+    console.error('Erro geral ao buscar séries com novos episódios:', error);
+    return await buscarSeriesMaisRecentes();
+  }
+};
+
+// Função auxiliar para buscar séries mais recentes como fallback
+const buscarSeriesMaisRecentes = async (): Promise<MovieCardProps[]> => {
+  try {
+    console.log('Buscando séries mais recentes como alternativa');
+    const { data: seriesRecentes, error } = await supabase
+      .from('series')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(15);
+    
+    if (error) throw error;
+    
+    return (seriesRecentes || []).map(serie => {
+      const serieComPlayerUrl = {
+        ...serie,
+        player_url: ''
+      };
+      return mapToMovieCard(serieComPlayerUrl as any);
+    });
+    
+  } catch (error) {
+    console.error('Erro ao buscar séries mais recentes:', error);
+    return [];
+  }
+};
+
 // Função para incrementar visualizações de uma série
 export const incrementarVisualizacaoSerie = async (serieId: string): Promise<void> => {
   try {
@@ -55,8 +175,11 @@ export const fetchSeries = async (categoria: string): Promise<MovieCardProps[]> 
         break;
       
       case 'NOVOS EPISÓDIOS':
+        // Buscar séries com episódios adicionados recentemente
+        return await fetchSeriesComNovosEpisodios();
+      
       default:
-        // Séries com novos episódios (por enquanto, usamos a categoria padrão)
+        // Para outras categorias, usar filtro padrão
         query = query.eq('categoria', categoria).limit(20);
         break;
     }
