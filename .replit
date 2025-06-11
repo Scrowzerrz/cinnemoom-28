@@ -4,15 +4,6 @@ modules = ["nodejs-20"]
 runButton = "Project"
 
 [[workflows.workflow]]
-name = "Dev Server"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-
-[[workflows.workflow]]
 name = "Project"
 mode = "parallel"
 author = "agent"
@@ -21,8 +12,21 @@ author = "agent"
 task = "workflow.run"
 args = "Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "WebServer"
+
 [[workflows.workflow]]
 name = "Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 8080
+
+[[workflows.workflow]]
+name = "WebServer"
 author = "agent"
 
 [[workflows.workflow.tasks]]
