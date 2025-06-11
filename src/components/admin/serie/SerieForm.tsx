@@ -5,7 +5,7 @@ import { SerieFormData, serieSchema } from "@/schemas/serieSchema";
 import { Form } from "@/components/ui/form";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SerieInfoBasica } from "./SerieInfoBasica";
 import { SerieMetadados } from "./SerieMetadados";
 import { SerieUrls } from "./SerieUrls";
@@ -39,6 +39,49 @@ export function SerieForm({
       generos: [],
     },
   });
+
+  // Carregar temporadas existentes quando estiver editando
+  useEffect(() => {
+    const carregarTemporadasExistentes = async () => {
+      if (!isEditing || !serieId) return;
+
+      try {
+        const { data: temporadas, error } = await supabase
+          .from('temporadas')
+          .select(`
+            *,
+            episodios (*)
+          `)
+          .eq('serie_id', serieId)
+          .order('numero', { ascending: true });
+
+        if (error) {
+          console.error('Erro ao carregar temporadas:', error);
+          return;
+        }
+
+        if (temporadas && temporadas.length > 0) {
+          // Converter para o formato esperado pelo componente SerieTemporadas
+          const temporadasFormatadas = temporadas.map(temporada => ({
+            id: temporada.id,
+            season_number: temporada.numero,
+            numero: temporada.numero,
+            titulo: temporada.titulo,
+            ano: temporada.ano,
+            poster_url: temporada.poster_url,
+            episodes: temporada.episodios || [],
+            episodios: temporada.episodios || []
+          }));
+
+          setTemporadasInfo(temporadasFormatadas);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar temporadas existentes:', error);
+      }
+    };
+
+    carregarTemporadasExistentes();
+  }, [isEditing, serieId]);
 
   const onSubmit = async (data: SerieFormData) => {
     setLoading(true);

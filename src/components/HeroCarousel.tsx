@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import FavoritoButton from '@/components/FavoritoButton';
 
 interface HeroItem {
-  id: string;
+  id?: string;
   title: string;
   description?: string;
   imageUrl: string;
