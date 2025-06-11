@@ -25,7 +25,8 @@ export {
 
 // Exportações de heroService
 export { 
-  fetchHeroMovie 
+  fetchHeroMovie,
+  fetchHeroMovies 
 } from './heroService';
 
 // Exportação de tipos

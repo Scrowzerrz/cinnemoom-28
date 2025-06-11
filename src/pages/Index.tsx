@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
-import Hero from '@/components/Hero';
+import HeroCarousel from '@/components/HeroCarousel';
 import LinhaFilmes from '@/components/MovieRow';
 import Footer from '@/components/Footer';
-import { fetchMovies, fetchSeries, fetchHeroMovie } from '@/services/movieService';
+import { fetchMovies, fetchSeries, fetchHeroMovies } from '@/services/movieService';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -16,15 +16,15 @@ const Index = () => {
   const [activeCategoryFilmes, setActiveCategoryFilmes] = useState(categoriesFilmes[0]);
   const [activeCategorySeries, setActiveCategorySeries] = useState(categoriesSeries[0]);
 
-  // Fetch hero movie data
+  // Fetch hero movies data for carousel
   const { 
-    data: heroMovie, 
+    data: heroMovies, 
     isLoading: heroLoading, 
     error: heroError,
     refetch: refetchHero
   } = useQuery({
-    queryKey: ['heroMovie'],
-    queryFn: fetchHeroMovie,
+    queryKey: ['heroMovies'],
+    queryFn: fetchHeroMovies,
     retry: 1,
     meta: {
       onError: (error) => {
@@ -81,7 +81,7 @@ const Index = () => {
       return (
         <div className="flex items-center justify-center w-full h-[90vh] bg-movieDarkBlue">
           <div className="text-center">
-            <p className="text-white text-2xl">Erro ao carregar filme em destaque</p>
+            <p className="text-white text-2xl">Erro ao carregar conteúdo em destaque</p>
             <button 
               onClick={() => refetchHero()} 
               className="mt-4 px-6 py-2 bg-movieRed text-white rounded-md hover:bg-red-700 transition-colors"
@@ -93,17 +93,8 @@ const Index = () => {
       );
     }
 
-    return heroMovie && (
-      <Hero 
-        title={heroMovie.title} 
-        description={heroMovie.description} 
-        imageUrl={heroMovie.imageUrl} 
-        type={heroMovie.type}
-        rating={heroMovie.rating}
-        year={heroMovie.year}
-        duration={heroMovie.duration}
-        id={heroMovie.id || ''}
-      />
+    return heroMovies && heroMovies.length > 0 && (
+      <HeroCarousel items={heroMovies} />
     );
   };
 

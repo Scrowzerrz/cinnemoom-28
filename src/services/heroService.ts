@@ -2,94 +2,91 @@ import { supabase } from "@/integrations/supabase/client";
 import { HeroMovie, FilmeDB } from './types/movieTypes';
 import { serieToFilmeDB } from "./utils/movieUtils";
 
-export const fetchHeroMovie = async (): Promise<HeroMovie> => {
+export const fetchHeroMovies = async (): Promise<HeroMovie[]> => {
   try {
-    let { data, error } = await supabase
+    // Buscar 3 filmes em destaque
+    const { data: filmesDestaque, error: filmesError } = await supabase
       .from('filmes')
       .select('*')
       .eq('destaque', true)
-      .single();
-    
-    if (error || !data) {
-      const seriesResult = await supabase
-        .from('series')
-        .select('*')
-        .eq('destaque', true)
-        .single();
+      .limit(3);
+
+    // Buscar 3 séries em destaque
+    const { data: seriesDestaque, error: seriesError } = await supabase
+      .from('series')
+      .select('*')
+      .eq('destaque', true)
+      .limit(3);
+
+    let allDestaques: any[] = [];
+
+    // Adicionar filmes se existirem
+    if (!filmesError && filmesDestaque) {
+      allDestaques.push(...filmesDestaque.map(filme => ({ ...filme, tipo: 'movie' })));
+    }
+
+    // Adicionar séries se existirem
+    if (!seriesError && seriesDestaque) {
+      allDestaques.push(...seriesDestaque.map(serie => ({ ...serie, tipo: 'series' })));
+    }
+
+    // Se não há conteúdo em destaque suficiente, buscar conteúdo recente
+    if (allDestaques.length < 3) {
+      const quantidadeNecessaria = 3 - allDestaques.length;
       
-      if (seriesResult.error) {
-        const fallbackFilmes = await supabase
-          .from('filmes')
-          .select('*')
-          .limit(1)
-          .single();
-          
-        if (fallbackFilmes.error || !fallbackFilmes.data) {
-          const fallbackSeries = await supabase
-            .from('series')
-            .select('*')
-            .limit(1)
-            .single();
-            
-          if (fallbackSeries.error || !fallbackSeries.data) {
-            throw new Error('Nenhum filme ou série encontrado no banco de dados');
-          }
-          
-          data = serieToFilmeDB(fallbackSeries.data);
-        } else {
-          data = {
-            ...fallbackFilmes.data,
-            avaliacao: fallbackFilmes.data.avaliacao || '0.0',
-            categoria: fallbackFilmes.data.categoria || '',
-            descricao: fallbackFilmes.data.descricao || '',
-            destaque: fallbackFilmes.data.destaque || false,
-            diretor: fallbackFilmes.data.diretor || '',
-            duracao: fallbackFilmes.data.duracao || '',
-            elenco: fallbackFilmes.data.elenco || '',
-            generos: fallbackFilmes.data.generos || [],
-            idioma: fallbackFilmes.data.idioma || '',
-            player_url: fallbackFilmes.data.player_url || '',
-            produtor: fallbackFilmes.data.produtor || '',
-            tipo: fallbackFilmes.data.tipo || 'movie',
-            trailer_url: fallbackFilmes.data.trailer_url || ''
-          } as FilmeDB;
-        }
-      } else {
-        data = serieToFilmeDB(seriesResult.data);
+      // Buscar filmes recentes
+      const { data: filmesRecentes } = await supabase
+        .from('filmes')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(quantidadeNecessaria);
+
+      if (filmesRecentes) {
+        allDestaques.push(...filmesRecentes.map(filme => ({ ...filme, tipo: 'movie' })));
       }
-    } else {
-      data = {
-        ...data,
-        avaliacao: data.avaliacao || '0.0',
-        categoria: data.categoria || '',
-        descricao: data.descricao || '',
-        destaque: data.destaque || false,
-        diretor: data.diretor || '',
-        duracao: data.duracao || '',
-        elenco: data.elenco || '',
-        generos: data.generos || [],
-        idioma: data.idioma || '',
-        player_url: data.player_url || '',
-        produtor: data.produtor || '',
-        tipo: data.tipo || 'movie',
-        trailer_url: data.trailer_url || ''
-      } as FilmeDB;
+
+      // Se ainda não temos 3, buscar séries
+      if (allDestaques.length < 3) {
+        const quantidadeRestante = 3 - allDestaques.length;
+        const { data: seriesRecentes } = await supabase
+          .from('series')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(quantidadeRestante);
+
+        if (seriesRecentes) {
+          allDestaques.push(...seriesRecentes.map(serie => ({ ...serie, tipo: 'series' })));
+        }
+      }
     }
-    
-    if (!data) {
-      throw new Error('Nenhum filme ou série encontrado');
+
+    // Pegar apenas os primeiros 3
+    const conteudoSelecionado = allDestaques.slice(0, 3);
+
+    if (conteudoSelecionado.length === 0) {
+      throw new Error('Nenhum conteúdo encontrado no banco de dados');
     }
-    
-    return {
-      id: data.id,
-      title: data.titulo,
-      description: data.descricao || 'Sem descrição disponível',
-      imageUrl: data.poster_url,
-      type: data.tipo === 'series' ? 'series' : 'movie',
-      rating: data.avaliacao || '0.0',
-      year: data.ano,
-      duration: data.duracao || '0min'
-    };
+
+    return conteudoSelecionado.map(item => ({
+      id: item.id,
+      title: item.titulo,
+      description: item.descricao || 'Sem descrição disponível',
+      imageUrl: item.poster_url,
+      type: item.tipo === 'series' ? 'series' : 'movie',
+      rating: item.avaliacao || '0.0',
+      year: item.ano,
+      duration: item.duracao || '0min'
+    }));
+  } catch (error) {
+    console.error('Erro ao buscar conteúdo em destaque:', error);
+    throw new Error('Não foi possível carregar conteúdo em destaque');
+  }
+};
+
+export const fetchHeroMovie = async (): Promise<HeroMovie> => {
+  try {
+    const heroMovies = await fetchHeroMovies();
+    return heroMovies[0];
   } catch (error) {
     console.error('Erro ao buscar filme/série em destaque:', error);
     throw new Error('Não foi possível carregar conteúdo em destaque');
