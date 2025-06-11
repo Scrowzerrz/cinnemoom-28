@@ -1,17 +1,42 @@
 modules = ["nodejs-20"]
 
 [workflows]
-runButton = "Dev Server"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Dev Server"
-author = 43712603
-mode = "sequential"
+mode = "parallel"
+author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
 
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Server"
+
+[[workflows.workflow]]
+name = "Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 8080
+
 [[ports]]
 localPort = 8080
 externalPort = 80
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
+[deployment]
+run = ["sh", "-c", "npm run dev"]

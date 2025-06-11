@@ -7,7 +7,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuFooter,
 } from '@/components/ui/dropdown-menu';
 import { useNotificacoes, Notificacao } from '@/hooks/useNotificacoes';
 import { formatDistanceToNow } from 'date-fns';
@@ -123,9 +122,10 @@ const NotificacaoBadge = () => {
           )}
         </ScrollArea>
         
-        <DropdownMenuFooter className="p-2 text-center text-xs text-gray-500">
+        <DropdownMenuSeparator />
+        <div className="p-2 text-center text-xs text-gray-500">
           Clique em uma notificação para visualizar o conteúdo
-        </DropdownMenuFooter>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
