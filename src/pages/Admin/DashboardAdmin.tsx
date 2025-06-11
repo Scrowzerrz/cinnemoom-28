@@ -12,6 +12,20 @@ interface Estatisticas {
   totalUsuarios: number;
   recentesFilmes: number;
   recentesSeries: number;
+  totalVisualizacoes: number;
+  totalComentarios: number;
+  usuariosAtivos: number;
+  conteudoMaisVisto: {
+    tipo: 'filme' | 'serie';
+    titulo: string;
+    visualizacoes: number;
+  } | null;
+  ultimasAdicoes: Array<{
+    id: string;
+    titulo: string;
+    tipo: 'filme' | 'serie';
+    created_at: string;
+  }>;
 }
 
 const DashboardAdmin = () => {
@@ -20,7 +34,12 @@ const DashboardAdmin = () => {
     totalSeries: 0,
     totalUsuarios: 0,
     recentesFilmes: 0,
-    recentesSeries: 0
+    recentesSeries: 0,
+    totalVisualizacoes: 0,
+    totalComentarios: 0,
+    usuariosAtivos: 0,
+    conteudoMaisVisto: null,
+    ultimasAdicoes: []
   });
   const [carregando, setCarregando] = useState(true);
 
@@ -30,51 +49,127 @@ const DashboardAdmin = () => {
       try {
         console.log("Iniciando carregamento de estatísticas...");
         
-        // Obter total de filmes
-        const { count: totalFilmes, error: erroFilmes } = await supabase
-          .from('filmes')
-          .select('*', { count: 'exact', head: true });
-
-        // Obter total de séries
-        const { count: totalSeries, error: erroSeries } = await supabase
-          .from('series')
-          .select('*', { count: 'exact', head: true });
-
-        // Obter total de usuários
-        const { count: totalUsuarios, error: erroUsuarios } = await supabase
-          .from('perfis')
-          .select('*', { count: 'exact', head: true });
-          
-        console.log("Total de usuários encontrados:", totalUsuarios);
-
-        // Obter filmes recentes (últimos 30 dias)
+        // Data limite para estatísticas recentes (últimos 30 dias)
         const dataLimite = new Date();
         dataLimite.setDate(dataLimite.getDate() - 30);
-        
-        const { count: recentesFilmes, error: erroRecentesFilmes } = await supabase
-          .from('filmes')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', dataLimite.toISOString());
+        const dataLimiteISO = dataLimite.toISOString();
 
-        // Obter séries recentes (últimos 30 dias)
-        const { count: recentesSeries, error: erroRecentesSeries } = await supabase
-          .from('series')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', dataLimite.toISOString());
+        // Executar todas as consultas em paralelo
+        const [
+          filmesResult,
+          seriesResult,
+          usuariosResult,
+          recentesFilmesResult,
+          recentesSeriesResult,
+          comentariosResult,
+          visualizacoesFilmesResult,
+          visualizacoesSeriesResult,
+          ultimasAdicoesFilmesResult,
+          ultimasAdicoesSeriesResult,
+          filmeMaisVistoResult,
+          serieMaisVistaResult
+        ] = await Promise.all([
+          // Total de filmes
+          supabase.from('filmes').select('*', { count: 'exact', head: true }),
+          
+          // Total de séries
+          supabase.from('series').select('*', { count: 'exact', head: true }),
+          
+          // Total de usuários
+          supabase.from('perfis').select('*', { count: 'exact', head: true }),
+          
+          // Filmes recentes (últimos 30 dias)
+          supabase.from('filmes').select('*', { count: 'exact', head: true }).gte('created_at', dataLimiteISO),
+          
+          // Séries recentes (últimos 30 dias)
+          supabase.from('series').select('*', { count: 'exact', head: true }).gte('created_at', dataLimiteISO),
+          
+          // Total de comentários
+          supabase.from('comentarios').select('*', { count: 'exact', head: true }),
+          
+          // Soma de visualizações de filmes
+          supabase.from('filmes').select('visualizacoes'),
+          
+          // Soma de visualizações de séries
+          supabase.from('series').select('visualizacoes'),
+          
+          // Últimas adições de filmes (últimos 5)
+          supabase.from('filmes').select('id, titulo, created_at').order('created_at', { ascending: false }).limit(5),
+          
+          // Últimas adições de séries (últimos 5)
+          supabase.from('series').select('id, titulo, created_at').order('created_at', { ascending: false }).limit(5),
+          
+          // Filme mais visto
+          supabase.from('filmes').select('titulo, visualizacoes').order('visualizacoes', { ascending: false }).limit(1),
+          
+          // Série mais vista
+          supabase.from('series').select('titulo, visualizacoes').order('visualizacoes', { ascending: false }).limit(1)
+        ]);
 
-        if (erroFilmes || erroSeries || erroUsuarios || erroRecentesFilmes || erroRecentesSeries) {
-          console.error("Erros ao carregar estatísticas:", {
-            erroFilmes, erroSeries, erroUsuarios, erroRecentesFilmes, erroRecentesSeries
-          });
-          throw new Error("Erro ao carregar estatísticas");
+        // Verificar erros
+        const resultados = [
+          filmesResult, seriesResult, usuariosResult, recentesFilmesResult, 
+          recentesSeriesResult, comentariosResult, visualizacoesFilmesResult,
+          visualizacoesSeriesResult, ultimasAdicoesFilmesResult, ultimasAdicoesSeriesResult,
+          filmeMaisVistoResult, serieMaisVistaResult
+        ];
+
+        const erros = resultados.filter(result => result.error);
+        if (erros.length > 0) {
+          console.error("Erros ao carregar estatísticas:", erros);
+          // Continuar com dados disponíveis mesmo se houver alguns erros
         }
 
-        const novasEstatisticas = {
-          totalFilmes: totalFilmes || 0,
-          totalSeries: totalSeries || 0,
-          totalUsuarios: totalUsuarios || 0,
-          recentesFilmes: recentesFilmes || 0,
-          recentesSeries: recentesSeries || 0
+        // Calcular totais de visualizações
+        const totalVisualizacoesFilmes = visualizacoesFilmesResult.data?.reduce(
+          (sum, filme) => sum + (filme.visualizacoes || 0), 0
+        ) || 0;
+        
+        const totalVisualizacoesSeries = visualizacoesSeriesResult.data?.reduce(
+          (sum, serie) => sum + (serie.visualizacoes || 0), 0
+        ) || 0;
+
+        // Determinar conteúdo mais visto
+        const filmeMaisVisto = filmeMaisVistoResult.data?.[0];
+        const serieMaisVista = serieMaisVistaResult.data?.[0];
+        
+        let conteudoMaisVisto = null;
+        if (filmeMaisVisto && serieMaisVista) {
+          conteudoMaisVisto = (filmeMaisVisto.visualizacoes || 0) > (serieMaisVista.visualizacoes || 0)
+            ? { tipo: 'filme' as const, titulo: filmeMaisVisto.titulo, visualizacoes: filmeMaisVisto.visualizacoes || 0 }
+            : { tipo: 'serie' as const, titulo: serieMaisVista.titulo, visualizacoes: serieMaisVista.visualizacoes || 0 };
+        } else if (filmeMaisVisto) {
+          conteudoMaisVisto = { tipo: 'filme' as const, titulo: filmeMaisVisto.titulo, visualizacoes: filmeMaisVisto.visualizacoes || 0 };
+        } else if (serieMaisVista) {
+          conteudoMaisVisto = { tipo: 'serie' as const, titulo: serieMaisVista.titulo, visualizacoes: serieMaisVista.visualizacoes || 0 };
+        }
+
+        // Combinar últimas adições
+        const ultimasAdicoesFilmes = ultimasAdicoesFilmesResult.data?.map(filme => ({
+          ...filme,
+          tipo: 'filme' as const
+        })) || [];
+        
+        const ultimasAdicoesSeries = ultimasAdicoesSeriesResult.data?.map(serie => ({
+          ...serie,
+          tipo: 'serie' as const
+        })) || [];
+
+        const ultimasAdicoes = [...ultimasAdicoesFilmes, ...ultimasAdicoesSeries]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 5);
+
+        const novasEstatisticas: Estatisticas = {
+          totalFilmes: filmesResult.count || 0,
+          totalSeries: seriesResult.count || 0,
+          totalUsuarios: usuariosResult.count || 0,
+          recentesFilmes: recentesFilmesResult.count || 0,
+          recentesSeries: recentesSeriesResult.count || 0,
+          totalVisualizacoes: totalVisualizacoesFilmes + totalVisualizacoesSeries,
+          totalComentarios: comentariosResult.count || 0,
+          usuariosAtivos: usuariosResult.count || 0, // Simplificado - todos os usuários cadastrados
+          conteudoMaisVisto,
+          ultimasAdicoes
         };
         
         console.log("Estatísticas carregadas com sucesso:", novasEstatisticas);
@@ -158,17 +253,17 @@ const DashboardAdmin = () => {
         />
         
         <StatCard
-          title="Usuários Ativos"
-          value={estatisticas.totalUsuarios}
-          icon={Users}
-          description="Usuários registrados no sistema"
+          title="Total de Visualizações"
+          value={estatisticas.totalVisualizacoes.toLocaleString()}
+          icon={Eye}
+          description="Visualizações em todo o catálogo"
         />
         
         <StatCard
-          title="Conteúdo Recente"
-          value={estatisticas.recentesFilmes + estatisticas.recentesSeries}
-          icon={Calendar}
-          description="Novos títulos nos últimos 30 dias"
+          title="Comentários"
+          value={estatisticas.totalComentarios}
+          icon={Users}
+          description="Total de comentários na plataforma"
         />
       </div>
 
@@ -204,108 +299,135 @@ const DashboardAdmin = () => {
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
+        {/* Últimas Adições */}
         <Card className="bg-movieDark border-gray-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-movieRed" />
-              Atividade Recente
+              <Calendar className="h-5 w-5 text-movieRed" />
+              Últimas Adições
             </CardTitle>
           </CardHeader>
           <CardContent>
             {carregando ? (
               <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
+                {Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <Skeleton className="h-8 w-8 rounded-full bg-gray-700" />
                     <div className="space-y-1">
-                      <Skeleton className="h-3 w-24 bg-gray-700" />
-                      <Skeleton className="h-2 w-16 bg-gray-700" />
+                      <Skeleton className="h-3 w-32 bg-gray-700" />
+                      <Skeleton className="h-2 w-20 bg-gray-700" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : estatisticas.ultimasAdicoes.length > 0 ? (
+              <div className="space-y-3">
+                {estatisticas.ultimasAdicoes.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 text-sm">
+                    <div className={`h-2 w-2 rounded-full ${item.tipo === 'filme' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+                    <div className="flex-1">
+                      <span className="text-gray-300">{item.titulo}</span>
+                      <p className="text-xs text-gray-500">
+                        {item.tipo === 'filme' ? 'Filme' : 'Série'} • {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                      </p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                  <span className="text-gray-300">Sistema iniciado</span>
-                  <span className="text-gray-500 text-xs ml-auto">agora</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-gray-300">Dashboard carregado</span>
-                  <span className="text-gray-500 text-xs ml-auto">1m atrás</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
-                  <span className="text-gray-300">Aguardando conexão BD</span>
-                  <span className="text-gray-500 text-xs ml-auto">2m atrás</span>
-                </div>
+              <div className="text-center text-gray-400 text-sm">
+                Nenhuma adição recente
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* System Status */}
+        {/* Conteúdo Mais Popular */}
         <Card className="bg-movieDark border-gray-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-movieRed" />
-              Status do Sistema
+              <TrendingUp className="h-5 w-5 text-movieRed" />
+              Mais Popular
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-300">Banco de Dados</span>
-              <Badge variant="secondary" className="text-xs">
-                Offline
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-300">API Status</span>
-              <Badge variant="default" className="text-xs bg-green-600">
-                Online
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-300">CDN</span>
-              <Badge variant="default" className="text-xs bg-green-600">
-                Online
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-300">Upload</span>
-              <Badge variant="default" className="text-xs bg-green-600">
-                Funcional
-              </Badge>
-            </div>
+          <CardContent>
+            {carregando ? (
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-32 bg-gray-700" />
+                <Skeleton className="h-6 w-48 bg-gray-700" />
+                <Skeleton className="h-3 w-24 bg-gray-700" />
+              </div>
+            ) : estatisticas.conteudoMaisVisto ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  {estatisticas.conteudoMaisVisto.tipo === 'filme' ? (
+                    <Film className="h-4 w-4 text-blue-400" />
+                  ) : (
+                    <Tv className="h-4 w-4 text-green-400" />
+                  )}
+                  <span className="text-xs text-gray-400 uppercase tracking-wide">
+                    {estatisticas.conteudoMaisVisto.tipo}
+                  </span>
+                </div>
+                <h3 className="font-medium text-white">
+                  {estatisticas.conteudoMaisVisto.titulo}
+                </h3>
+                <div className="flex items-center gap-1">
+                  <Eye className="h-3 w-3 text-gray-400" />
+                  <span className="text-sm text-gray-300">
+                    {estatisticas.conteudoMaisVisto.visualizacoes.toLocaleString()} visualizações
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center text-gray-400 text-sm">
+                Dados não disponíveis
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Performance Metrics */}
+      {/* Resumo de Atividade */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-movieDark border-gray-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-movieRed" />
-              Métricas de Performance
+              <Activity className="h-5 w-5 text-movieRed" />
+              Resumo do Catálogo
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-300">Tempo de Resposta</span>
-                <span className="text-sm font-medium text-green-400">~120ms</span>
+                <span className="text-sm text-gray-300">Total de Títulos</span>
+                <span className="text-sm font-medium text-blue-400">
+                  {carregando ? (
+                    <Skeleton className="h-4 w-8 bg-gray-700" />
+                  ) : (
+                    (estatisticas.totalFilmes + estatisticas.totalSeries).toLocaleString()
+                  )}
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-300">Uptime</span>
-                <span className="text-sm font-medium text-green-400">99.9%</span>
+                <span className="text-sm text-gray-300">Conteúdo Recente</span>
+                <span className="text-sm font-medium text-green-400">
+                  {carregando ? (
+                    <Skeleton className="h-4 w-8 bg-gray-700" />
+                  ) : (
+                    `${estatisticas.recentesFilmes + estatisticas.recentesSeries} nos últimos 30 dias`
+                  )}
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-300">Requests/min</span>
-                <span className="text-sm font-medium text-blue-400">~45</span>
+                <span className="text-sm text-gray-300">Usuários Registrados</span>
+                <span className="text-sm font-medium text-yellow-400">
+                  {carregando ? (
+                    <Skeleton className="h-4 w-8 bg-gray-700" />
+                  ) : (
+                    estatisticas.totalUsuarios.toLocaleString()
+                  )}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -315,22 +437,42 @@ const DashboardAdmin = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-movieRed" />
-              Engagement
+              Estatísticas de Engagement
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-300">Usuários Online</span>
-                <span className="text-sm font-medium text-green-400">~12</span>
+                <span className="text-sm text-gray-300">Total de Visualizações</span>
+                <span className="text-sm font-medium text-green-400">
+                  {carregando ? (
+                    <Skeleton className="h-4 w-12 bg-gray-700" />
+                  ) : (
+                    estatisticas.totalVisualizacoes.toLocaleString()
+                  )}
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-300">Sessões Ativas</span>
-                <span className="text-sm font-medium text-blue-400">~8</span>
+                <span className="text-sm text-gray-300">Comentários Ativos</span>
+                <span className="text-sm font-medium text-blue-400">
+                  {carregando ? (
+                    <Skeleton className="h-4 w-8 bg-gray-700" />
+                  ) : (
+                    estatisticas.totalComentarios.toLocaleString()
+                  )}
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-300">Bounce Rate</span>
-                <span className="text-sm font-medium text-yellow-400">~15%</span>
+                <span className="text-sm text-gray-300">Média de Visualizações</span>
+                <span className="text-sm font-medium text-yellow-400">
+                  {carregando ? (
+                    <Skeleton className="h-4 w-8 bg-gray-700" />
+                  ) : estatisticas.totalFilmes + estatisticas.totalSeries > 0 ? (
+                    Math.round(estatisticas.totalVisualizacoes / (estatisticas.totalFilmes + estatisticas.totalSeries)).toLocaleString()
+                  ) : (
+                    '0'
+                  )}
+                </span>
               </div>
             </div>
           </CardContent>
